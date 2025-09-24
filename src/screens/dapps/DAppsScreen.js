@@ -36,7 +36,7 @@ export default function DAppsScreen({navigation, route}) {
     const onEndEditing = () => {
         let finalUrl = searchValue;
         if (isUrl === false) {
-            finalUrl = 'https://duckduckgo.com/?q=' + searchValue;
+            finalUrl = 'https://google.com/?q=' + searchValue;
         }
         setUrl(finalUrl);
         navigation.navigate('DAppsDetailScreen', {
@@ -66,7 +66,7 @@ export default function DAppsScreen({navigation, route}) {
                             <CommonText
                                 style={{color: theme.subText}}
                                 numberOfLines={3}>
-                                {item.desc}
+                                {t(`dapps.desc${index}`)}
                             </CommonText>
                         </View>
                     </View>

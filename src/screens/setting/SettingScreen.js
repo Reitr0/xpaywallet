@@ -137,11 +137,11 @@ export default function SettingScreen({navigation}) {
                     </View>
                     <View style={styles.item}>
                         <CommonTouchableOpacity
-                            // onPress={async () => {
-                            //     await Linking.openURL(
-                            //         applicationProperties.endpoints.helpCenter,
-                            //     );
-                            // }}
+                            onPress={async () => {
+                                await Linking.openURL(
+                                    applicationProperties.endpoints.helpCenter,
+                                );
+                            }}
                             style={[
                                 styles.row,
                                 {backgroundColor: theme.background},
@@ -165,7 +165,7 @@ export default function SettingScreen({navigation}) {
                             </View>
                         </CommonTouchableOpacity>
                         <CommonText style={styles.rightHeader}>
-                            XPay Ver. 1.0.3
+                            XPay Ver. 1.1.0
                         </CommonText>
                     </View>
                 </ScrollView>

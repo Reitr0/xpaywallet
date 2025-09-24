@@ -40,4 +40,10 @@ export const light = {
     text5: '#ff0000',
     text6: '#f5b60f',
     text7: '#868686',
+    textTable: '#4f77fb',
+    border: '#4f77fb',
+    backgroundTable: '#fff',
+    success: "#1DCD9F",
+    error: '#C5172E',
+    gradientMain: ['#5269ff', '#5d62f5']
 };

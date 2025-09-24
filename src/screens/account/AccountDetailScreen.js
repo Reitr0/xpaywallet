@@ -1,5 +1,6 @@
 import React, {useRef, useState} from 'react';
 import {
+    Alert,
     Keyboard,
     SafeAreaView,
     StyleSheet,
@@ -141,13 +142,20 @@ export default function AccountDetailScreen({navigation, route}) {
                 </View>
                 <View style={styles.buttonContainer}>
                     <CommonButton
-                        text={'Save'}
+                        text={t('save')}
                         onPress={async () => {
                             dispatch(
                                 WalletAction.update({
                                     ...account,
                                     name: walletName,
                                 }),
+                            );
+
+                            // Show the success alert
+                            CommonAlert.show({
+                                title : t('alert.success'), // Title of the alert
+                                message: t('wallet.update_success'),
+                            }
                             );
                         }}
                     />
@@ -156,7 +164,7 @@ export default function AccountDetailScreen({navigation, route}) {
                             marginTop: 20,
                             backgroundColor: theme.backgroundColor,
                         }}
-                        text={'Delete this wallet'}
+                        text={t('delete_wallet')}
                         textStyle={{color: theme.text2}}
                         onPress={async () => {
                             Keyboard.dismiss();

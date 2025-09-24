@@ -7,6 +7,9 @@ import CommonText from '@components/commons/CommonText';
 import CommonLoading from '@components/commons/CommonLoading';
 import {UserAction} from '@persistence/user/UserAction';
 import {FeeAction} from '@persistence/fee/FeeAction';
+import {StorageService} from "@modules/core/storage/StorageService";
+import {AppLockAction} from "@persistence/applock/AppLockAction";
+import {ThemeAction} from "@persistence/theme/ThemeAction";
 
 const EnterPinCodeScreen = ({route}) => {
     const dispatch = useDispatch();
@@ -14,7 +17,26 @@ const EnterPinCodeScreen = ({route}) => {
     const {theme} = useSelector(state => state.ThemeReducer);
     const [retryCount, setRetryCount] = useState(0);
     const maxRetries = 3;
-
+    useEffect(() => {
+        (async () => {
+            // Load appLock settings on component mount
+            const storedAppLock = await StorageService.getItem('appLock');
+            if (storedAppLock) {
+                dispatch(AppLockAction.setAppLock(JSON.parse(storedAppLock)));
+            }
+            const storedBiometryLock = await StorageService.getItem('biometryLock');
+            if (storedBiometryLock !== null) {
+                dispatch(AppLockAction.setAppLock({
+                    ...appLock,
+                    biometryLock: JSON.parse(storedBiometryLock)
+                }));
+            }
+            const savedTheme = await StorageService.getItem('@defaultTheme');
+            if (savedTheme) {
+                dispatch(ThemeAction.setDefault(JSON.parse(savedTheme)));
+            }
+        })();
+    }, [dispatch]);
     useEffect(() => {
         const backAction = () => {
             return true; // Disable back button

@@ -24,7 +24,7 @@ import {Logs} from '@modules/log/logs';
 import CommonLoading from '@components/commons/CommonLoading';
 import _ from 'lodash';
 import {OxService} from '@modules/core/exchange/0x/0xService';
-import {ASSET_TYPE_COIN, CHAIN_ID_MAP} from '@modules/core/constant/constant';
+import {ASSET_TYPE_COIN, ASSET_TYPE_TOKEN, CHAIN_ID_MAP} from '@modules/core/constant/constant';
 import CommonButton from '@components/commons/CommonButton';
 import CommonAlert from '@components/commons/CommonAlert';
 import {sleep} from '@src/utils/ThreadUtil';
@@ -60,14 +60,15 @@ export default function DummySwapScreen({navigation, route}) {
             if (success === true) {
                 const activeAsset = data.activeWallet.activeAsset;
                 const defaultToken = {
-                    address: activeAsset.contract,
+                    address: '5Rn5TGpwsizxGsynsfv8hBAQvX1kfZcGWJDTNmGtx9K8',
                     chainId: CHAIN_ID_MAP[activeAsset.chain],
                     decimals: activeAsset.decimals,
                     logoURI: 'https://iili.io/JgYFd5G.webp',
-                    name: 'MXG',
+                    id: 'mxg',
+                    name: 'Meta X Gold',
                     symbol: 'MXG',
                     balance: activeAsset.balance,
-                    isNative: activeAsset.type === ASSET_TYPE_COIN,
+                    isNative: activeAsset.type === ASSET_TYPE_TOKEN,
                 };
                 setFromToken(defaultToken);
             }
@@ -222,93 +223,108 @@ export default function DummySwapScreen({navigation, route}) {
     };
     const swap = async () => {
         CommonLoading.show();
-        let sellAmount = toWei(
-            formatNoComma(fromTokenAmount),
-            fromToken?.decimals,
-        ).toLocaleString('fullwide', {useGrouping: false});
-        const buyAddress = toToken.isNative ? toToken.symbol : toToken.address;
-        const sellAddress = fromToken.isNative
-            ? fromToken.symbol
-            : fromToken.address;
+
         try {
             const wallet = await WalletFactory.getWallet(
                 activeWallet.activeAsset.chain,
             );
-            const web3Signer = wallet.web3Signer;
-            if (fromToken.isNative === false) {
-                const tokenContract = new web3Signer.eth.Contract(
-                    ERC20_ABI,
-                    fromToken.address,
-                );
-                const currentAllowance = await tokenContract.methods
-                    .allowance(
-                        activeWallet.activeAsset.walletAddress,
-                        ZERO_EX_ADDRESS,
-                    )
-                    .call();
-                if (
-                    new BigNumber(currentAllowance).isLessThan(
-                        new BigNumber(quote.sellAmount),
-                    )
-                ) {
-                    const approvalData = await tokenContract.methods.approve(
-                        ZERO_EX_ADDRESS,
-                        sellAmount,
-                    );
+            const connection = wallet.connection; // Assuming your wallet provides a connection object
+            const publicKey = wallet.publicKey; // Assuming your wallet provides a publicKey
 
-                    const gasEstimate = await approvalData.estimateGas();
-                    const tx = await approvalData.send({
-                        from: activeWallet.activeAsset.walletAddress,
-                        gas: gasEstimate,
-                        gasPrice: quote.gasPrice,
-                    });
-                    Logs.info('Approval transaction: ' + JSON.stringify(tx));
-                    await sleep(1500);
+            // Convert amount to decimals
+            let sellAmount = new BigNumber(fromTokenAmount)
+                .shiftedBy(fromToken.decimals)
+                .toString();
+
+            // Prepare addresses
+            const buyAddress = toToken.isNative ? toToken.symbol : toToken.address;
+            const sellAddress = fromToken.isNative ? fromToken.symbol : fromToken.address;
+
+            // **Token Approval (if needed)**
+            if (fromToken.isNative === false) {
+                // For Solana, you'll likely use the @solana/spl-token library for token operations
+                const token = new Token(
+                    connection,
+                    new PublicKey(fromToken.address),
+                    TOKEN_PROGRAM_ID, // Replace with the actual program ID
+                    publicKey
+                );
+
+                // Get associated token account
+                const fromTokenAccount = await Token.getAssociatedTokenAddress(
+                    ASSOCIATED_TOKEN_PROGRAM_ID,
+                    TOKEN_PROGRAM_ID,
+                    new PublicKey(fromToken.address),
+                    publicKey
+                );
+
+                // Check if an associated token account exists, create if not
+                const accountInfo = await connection.getAccountInfo(fromTokenAccount);
+                if (accountInfo === null) {
+                    const createATA = await token.createAssociatedTokenAccount(publicKey);
+                    console.log('Created associated token account:', createATA);
                 }
+
+                // Approve the DEX to spend your tokens
+                const approveInstruction = Token.createApproveInstruction(
+                    TOKEN_PROGRAM_ID,
+                    fromTokenAccount,
+                    new PublicKey(DEX_PROGRAM_ID), // Replace with the actual DEX program ID
+                    publicKey,
+                    [],
+                    sellAmount
+                );
+
+                // Create and send the transaction
+                const transaction = new Transaction().add(approveInstruction);
+                const { signature } = await sendAndConfirmTransaction(
+                    connection,
+                    transaction,
+                    [publicKey]
+                );
+                console.log('Approval transaction:', signature);
             }
+
+            // **Fetch Quote and Swap**
             const exactQuote = await fetchQuote(
                 buyAddress,
                 sellAddress,
                 sellAmount,
-                true,
+                true, // Assuming this indicates a Solana swap
             );
+
             console.log(exactQuote);
+
             if (
                 _.isEmpty(exactQuote) ||
                 (!_.isNil(exactQuote.code) && exactQuote.code !== 200)
             ) {
                 return;
             }
-            const transactionConfig = {
-                from: exactQuote.from,
-                to: exactQuote.to,
-                data: exactQuote.data,
-                value: exactQuote.value,
-                gasPrice: exactQuote.gasPrice,
-                gas: exactQuote.gas,
-            };
-            CommonLoading.show();
-            web3Signer.eth
-                .sendTransaction(transactionConfig)
-                .on('receipt', function (receipt) {
-                    CommonAlert.show({
-                        title: t('alert.success'),
-                        message: t('tx.your_swap_has_been_sent'),
-                    });
-                    onRefresh();
-                    reset();
-                    CommonLoading.hide();
-                })
-                .on('error', e => {
-                    console.log(e);
-                    reset();
-                    CommonLoading.hide();
-                });
+
+            // Assuming your `fetchQuote` function for Solana returns a transaction object
+            const swapTransaction = exactQuote.transaction;
+
+            // Send and confirm the swap transaction
+            const { signature } = await sendAndConfirmTransaction(
+                connection,
+                swapTransaction,
+                [publicKey]
+            );
+
+            CommonAlert.show({
+                title: t('alert.success'),
+                message: t('tx.your_swap_has_been_sent'),
+            });
+            onRefresh();
+            reset();
+            CommonLoading.hide();
+
         } catch (e) {
             Logs.info(e);
             CommonAlert.show({
                 title: t('alert.error'),
-                message: e.reason,
+                message: e.message, // Use e.message for more informative error messages
                 type: 'error',
             });
             reset();
@@ -328,8 +344,7 @@ export default function DummySwapScreen({navigation, route}) {
                 dispatch(WalletAction.balance()).then(({data}) => {
                     const defaultToken = {
                         address: data.activeWallet.activeAsset.contract,
-                        chainId:
-                            CHAIN_ID_MAP[data.activeWallet.activeAsset.chain],
+                        chainId: CHAIN_ID_MAP[data.activeWallet.activeAsset.chain],
                         decimals: data.activeWallet.activeAsset.decimals,
                         logoURI: data.activeWallet.activeAsset.logoURI,
                         name: data.activeWallet.activeAsset.name,
@@ -395,56 +410,56 @@ export default function DummySwapScreen({navigation, route}) {
                         />
                     }>
                     <View style={[styles.content]}>
-                        <View style={styles.segmentContainer}>
-                            <CommonTouchableOpacity
-                                onPress={() => {
-                                    onChangePlatform('TRON');
-                                    setPlatform('TRON');
-                                }}
-                                style={[
-                                    styles.segmentItem,
-                                    platform === 'TRON'
-                                        ? {
-                                              backgroundColor: theme.button,
-                                              borderRadius: 10,
-                                          }
-                                        : {},
-                                ]}>
-                                <CommonText
-                                    style={{
-                                        color:
-                                            platform === 'TRON'
-                                                ? theme.text
-                                                : theme.subText,
-                                    }}>
-                                    TRC20
-                                </CommonText>
-                            </CommonTouchableOpacity>
-                            <CommonTouchableOpacity
-                                onPress={() => {
-                                    onChangePlatform('BSC');
-                                    setPlatform('BSC');
-                                }}
-                                style={[
-                                    styles.segmentItem,
-                                    platform === 'BSC'
-                                        ? {
-                                              backgroundColor: theme.button,
-                                              borderRadius: 10,
-                                          }
-                                        : {},
-                                ]}>
-                                <CommonText
-                                    style={{
-                                        color:
-                                            platform === 'BSC'
-                                                ? theme.text
-                                                : theme.subText,
-                                    }}>
-                                    BEP20
-                                </CommonText>
-                            </CommonTouchableOpacity>
-                        </View>
+                        {/*<View style={styles.segmentContainer}>*/}
+                        {/*    /!*<CommonTouchableOpacity*!/*/}
+                        {/*    /!*    onPress={() => {*!/*/}
+                        {/*    /!*        onChangePlatform('SOLANA');*!/*/}
+                        {/*    /!*        setPlatform('SOLANA');*!/*/}
+                        {/*    /!*    }}*!/*/}
+                        {/*    /!*    style={[*!/*/}
+                        {/*    /!*        styles.segmentItem,*!/*/}
+                        {/*    /!*        platform === 'SOLANA'*!/*/}
+                        {/*    /!*            ? {*!/*/}
+                        {/*    /!*                  backgroundColor: theme.button,*!/*/}
+                        {/*    /!*                  borderRadius: 10,*!/*/}
+                        {/*    /!*              }*!/*/}
+                        {/*    /!*            : {},*!/*/}
+                        {/*    /!*    ]}>*!/*/}
+                        {/*    /!*    <CommonText*!/*/}
+                        {/*    /!*        style={{*!/*/}
+                        {/*    /!*            color:*!/*/}
+                        {/*    /!*                platform === 'SOLANA'*!/*/}
+                        {/*    /!*                    ? theme.text*!/*/}
+                        {/*    /!*                    : theme.subText,*!/*/}
+                        {/*    /!*        }}>*!/*/}
+                        {/*    /!*        SOLANA SWAP*!/*/}
+                        {/*    /!*    </CommonText>*!/*/}
+                        {/*    /!*</CommonTouchableOpacity>*!/*/}
+                        {/*    /!*<CommonTouchableOpacity*!/*/}
+                        {/*    /!*    onPress={() => {*!/*/}
+                        {/*    /!*        onChangePlatform('BSC');*!/*/}
+                        {/*    /!*        setPlatform('BSC');*!/*/}
+                        {/*    /!*    }}*!/*/}
+                        {/*    /!*    style={[*!/*/}
+                        {/*    /!*        styles.segmentItem,*!/*/}
+                        {/*    /!*        platform === 'BSC'*!/*/}
+                        {/*    /!*            ? {*!/*/}
+                        {/*    /!*                  backgroundColor: theme.button,*!/*/}
+                        {/*    /!*                  borderRadius: 10,*!/*/}
+                        {/*    /!*              }*!/*/}
+                        {/*    /!*            : {},*!/*/}
+                        {/*    /!*    ]}>*!/*/}
+                        {/*    /!*    <CommonText*!/*/}
+                        {/*    /!*        style={{*!/*/}
+                        {/*    /!*            color:*!/*/}
+                        {/*    /!*                platform === 'BSC'*!/*/}
+                        {/*    /!*                    ? theme.text*!/*/}
+                        {/*    /!*                    : theme.subText,*!/*/}
+                        {/*    /!*        }}>*!/*/}
+                        {/*    /!*        BEP20*!/*/}
+                        {/*    /!*    </CommonText>*!/*/}
+                        {/*    /!*</CommonTouchableOpacity>*!/*/}
+                        {/*</View>*/}
                         <View
                             style={[
                                 styles.inputView,
@@ -539,7 +554,7 @@ export default function DummySwapScreen({navigation, route}) {
                             />
                             <CommonTouchableOpacity
                                 onPress={async () => {
-                                    navigation.navigate('SelectTokenScreen', {
+                                    navigation.navigate('SelectTokenScreen2', {
                                         platform:
                                             activeWallet.activeAsset.chain,
                                         onSelect: async item => {
@@ -821,7 +836,7 @@ const styles = StyleSheet.create({
         width: 32,
         borderRadius: 5,
         position: 'absolute',
-        top: 115,
+        top: 70,
         justifyContent: 'center',
         alignItems: 'center',
         shadowColor: '#000',

@@ -68,13 +68,13 @@ export class SolanaProvider implements Provider {
 
     constructor({ apiEndpoint}) {
         this.apiInstance = axios.create({
-            baseURL: apiEndpoint = 'https://silent-convincing-valley.solana-mainnet.quiknode.pro/4d43830d7a78708c89c77ee3fe5bb1ec48a5c4d7/', // Default to Solana mainnet-beta
+            baseURL: apiEndpoint = 'https://solana-mainnet.core.chainstack.com/2ef19b6485a2171959b47e653266c846', // Default to Solana mainnet-beta
         });
 
         console.log(apiEndpoint)
 
         this.connection = new web3.Connection(
-             'https://silent-convincing-valley.solana-mainnet.quiknode.pro/4d43830d7a78708c89c77ee3fe5bb1ec48a5c4d7/', // Allow cluster override
+             'https://solana-mainnet.core.chainstack.com/2ef19b6485a2171959b47e653266c846', // Allow cluster override
         );
     }
     async transferToken({signer, tokenContractAddress, to, value}) {}

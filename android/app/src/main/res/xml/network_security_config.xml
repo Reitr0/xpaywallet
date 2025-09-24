@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">https://magical-misty-tent.solana-mainnet.quiknode.pro/c395c31a02df95931e4688b9e4fb207ac436172f</domain>
+    </domain-config>
+</network-security-config>

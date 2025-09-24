@@ -26,6 +26,14 @@ const WalletReducer = createSlice({
         getBalanceSuccess(state, {payload}) {
             state.activeWallet = payload.activeWallet;
         },
+        insertSuccess(state, {payload}) {
+            state.wallets = payload.wallets;
+            state.activeWallet = payload.activeWallet;
+        },
+        updateSuccess(state, {payload}) {
+            state.wallets = payload.wallets;
+            state.activeWallet = payload.activeWallet;
+        },
         addAssetSuccess(state, {payload}) {
             state.wallets = payload.wallets;
             state.activeWallet = payload.activeWallet;
@@ -48,6 +56,8 @@ export const {
     createWalletSuccess,
     getWalletsSuccess,
     getBalanceSuccess,
+    insertSuccess,
+    updateSuccess,
     addAssetSuccess,
     removeAssetSuccess,
     setActiveWalletSuccess,

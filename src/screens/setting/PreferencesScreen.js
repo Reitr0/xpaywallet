@@ -19,8 +19,14 @@ export default function PreferencesScreen({navigation}) {
     useEffect(() => {
         (async () => {
             await getLanguage();
+            // Load theme on component mount
+            const savedTheme = await StorageService.getItem('@defaultTheme');
+            if (savedTheme) {
+                dispatch(ThemeAction.setDefault(JSON.parse(savedTheme)));
+            }
         })();
-    }, [getLanguage]);
+    }, [getLanguage, dispatch]);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const getLanguage = useCallback(async () => {
         const lang = (await StorageService.getItem('@lng')) || 'en';
@@ -54,6 +60,11 @@ export default function PreferencesScreen({navigation}) {
                 break;
         }
     });
+
+    // Function to save the theme whenever it changes
+    useEffect(() => {
+        StorageService.setItem('@defaultTheme', JSON.stringify(defaultTheme));
+    }, [defaultTheme]);
 
     return (
         <View style={[styles.container, {backgroundColor: theme.background4}]}>

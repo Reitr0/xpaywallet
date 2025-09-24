@@ -58,7 +58,9 @@ export default function WalletSendScreen({navigation}) {
     useEffect(() => {
         const fetchPrice = async () => {
             try {
-                const response = await fetch('https://account.metaxbank.io/api/mx-gold-price');
+                const response = await fetch(
+                    'https://account.metaxbank.io/api/mx-gold-price',
+                );
                 const priceText = await response.text();
                 setMXGPrice(parseFloat(priceText)); // Store the price as a number
             } catch (error) {
@@ -182,6 +184,7 @@ export default function WalletSendScreen({navigation}) {
                 to: destination,
                 value: value,
             };
+            console.log('TX object:', tx);
             if (fee?.enabled === true) {
                 tx.takerFee = fee.rate;
                 tx.takerAddress = fee.address;
@@ -191,12 +194,14 @@ export default function WalletSendScreen({navigation}) {
                 tx.decimals = activeWallet.activeAsset.decimals;
             }
 
-            console.log(tx)
+            console.log(tx);
+            console.log(' Active Asset ', activeWallet.activeAsset);
+            console.log(' TX to send ', {...tx, ...estimatedGasFee});
             const {success, data} = await WalletFactory.sendTransaction(
                 activeWallet.activeAsset,
                 {
                     ...tx,
-                    ...estimatedGasFee
+                    ...estimatedGasFee,
                 },
             );
 
@@ -333,8 +338,22 @@ export default function WalletSendScreen({navigation}) {
                                     }
                                     onChangeText={v => {
                                         setValue(v);
-                                        setToFiat(v * (activeWallet.activeAsset.id.toLowerCase() === 'xusdt' ? 1 : activeWallet.activeAsset.id.toLowerCase() === 'usdt' ? 1 : activeWallet.activeAsset.id.toLowerCase() === 'mxg' ? mxgPrice : prices[activeWallet.activeAsset.id][0]));
-
+                                        setToFiat(
+                                            v *
+                                                (activeWallet.activeAsset.id.toLowerCase() ===
+                                                'xusdt'
+                                                    ? 1
+                                                    : activeWallet.activeAsset.id.toLowerCase() ===
+                                                      'usdt'
+                                                    ? 1
+                                                    : activeWallet.activeAsset.id.toLowerCase() ===
+                                                      'mxg'
+                                                    ? mxgPrice
+                                                    : prices[
+                                                          activeWallet
+                                                              .activeAsset.id
+                                                      ][0]),
+                                        );
                                     }}
                                     keyboardType="numeric"
                                     numberOfLines={1}
@@ -444,9 +463,7 @@ export default function WalletSendScreen({navigation}) {
                                         {value}
                                     </Balance>
                                 </View>
-                                {
-                                    fee?.enabled === true
-                                }
+                                {fee?.enabled === true}
                                 <View style={styles.confirmTxItem}>
                                     <CommonText style={{color: theme.text2}}>
                                         {t('send.estimated_gas_fee')}
@@ -458,7 +475,8 @@ export default function WalletSendScreen({navigation}) {
                                                 activeWallet.activeAsset.chain
                                             ]
                                         }>
-                                        {estimatedGasFee?.estimateGas?.ether * 2}
+                                        {estimatedGasFee?.estimateGas?.ether *
+                                            2}
                                     </Balance>
                                 </View>
                                 <View style={styles.confirmTxItem}>

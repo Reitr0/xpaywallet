@@ -198,11 +198,31 @@ export const duku_bep20 = {
     logoURI:
         'https://dukuwallet-2aeb92c5caa8.herokuapp.com/content/kuku_dollar.png',
 };
-
+export const slx = {
+    order: 4,
+    symbol: 'SLX',
+    name: 'Solana X',
+    id: 'slx',
+    chain: 'SOLANA',
+    chainType: 'SOLANA',
+    type: ASSET_TYPE_TOKEN,
+    decimals: 9,
+    contract: 'DDNuH16bNVrzYMeLHztQgc3LDVMSasoeuF8zi8XNTQrh',
+    mnemonic: null,
+    privateKey: null,
+    walletAddress: null,
+    balance: 0,
+    unconfirmedBalance: 0,
+    value: 0,
+    price: 0,
+    active: true,
+    logoURI:
+        'https://i.ibb.co/GC5VBgq/SLX-COIN-241209.png',
+};
 export const mxgs = {
     order: 9,
-    symbol: 'MXG',
-    name: 'Meta X Gold',
+    symbol: 'JYB',
+    name: 'Jin Yuanbao (Solana X)',
     id: 'mxg',
     chain: 'SOLANA',
     chainType: 'SOLANA',
@@ -218,12 +238,12 @@ export const mxgs = {
     price: 0,
     active: true,
     logoURI:
-        'https://i.ibb.co/HhVYLhr/MX-GOLD-COIN.png',
+        'https://i.postimg.cc/0yP8wdJS/MX-GOLD-COIN.png',
 };
 export const xusdts = {
     order: 10,
     symbol: 'XUSDT',
-    name: 'XUSDT',
+    name: 'Tether AC (Solana X)',
     id: 'xusdt',
     chain: 'SOLANA',
     chainType: 'SOLANA',
@@ -239,12 +259,12 @@ export const xusdts = {
     price: 0,
     active: true,
     logoURI:
-        'https://i.ibb.co/QnsNXMx/xusdt2.png',
+        'https://i.postimg.cc/2yWz40wQ/xusdt2.png',
 };
 export const usdts = {
     order: 11,
     symbol: 'USDT',
-    name: 'USDT',
+    name: 'Tether AC (USDT Solx)',
     id: 'usdt',
     chain: 'SOLANA',
     chainType: 'SOLANA',
@@ -260,12 +280,12 @@ export const usdts = {
     price: 0,
     active: true,
     logoURI:
-        'https://i.ibb.co/D7W3ZWZ/usdt2.png',
+        'https://i.postimg.cc/KzRcYG3s/usdt2.png',
 };
 export const btcs = {
     order: 12,
     symbol: 'BTC',
-    name: 'BTC',
+    name: 'Bitcoin (Solana X)',
     id: 'btc',
     chain: 'SOLANA',
     chainType: 'SOLANA',
@@ -286,8 +306,8 @@ export const btcs = {
 export const eths = {
     order: 13,
     symbol: 'ETH',
-    name: 'ETH',
-    id: 'eth',
+    name: 'Ethereum (Solana X)',
+    id: 'eths',
     chain: 'SOLANA',
     chainType: 'SOLANA',
     type: ASSET_TYPE_TOKEN,
@@ -307,7 +327,7 @@ export const eths = {
 export const ltcs = {
     order: 14,
     symbol: 'LTC',
-    name: 'LTC',
+    name: 'Litecoin (Solana X)',
     id: 'ltc',
     chain: 'SOLANA',
     chainType: 'SOLANA',
@@ -328,7 +348,7 @@ export const ltcs = {
 export const doges = {
     order: 15,
     symbol: 'DOGE',
-    name: 'DOGE COIN',
+    name: 'DOGE COIN (Solana X)',
     id: 'doge',
     chain: 'SOLANA',
     chainType: 'SOLANA',
@@ -345,6 +365,27 @@ export const doges = {
     active: true,
     logoURI:
         'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTf2HxwuBXfjRHOAOGPrbyeJenImodJp68tow&s',
+};
+export const usdcs = {
+    order: 16,
+    symbol: 'USDC',
+    name: 'USDC (Solana X)',
+    id: 'usdc',
+    chain: 'SOLANA',
+    chainType: 'SOLANA',
+    type: ASSET_TYPE_TOKEN,
+    decimals: 6,
+    contract: '4mTty3JfcuYHhHQNojf66bxpReHwQcBMDwAwQoNAuHqh',
+    mnemonic: null,
+    privateKey: null,
+    walletAddress: null,
+    balance: 0,
+    unconfirmedBalance: 0,
+    value: 0,
+    price: 0,
+    active: true,
+    logoURI:
+        'https://cryptologos.cc/logos/usd-coin-usdc-logo.png',
 };
 export const xusdt = {
     order: 12,
@@ -492,3 +533,112 @@ export const usdtb = {
     active: true,
     logoURI: 'https://s2.coinmarketcap.com/static/img/coins/200x200/825.png',
 };
+
+export const amzn = {
+    order: 19,
+    symbol: 'AMZN',
+    name: 'Amazon.com Inc',
+    id: 'amzn',
+    chain: 'SOLANA',
+    chainType: 'SOLANA',
+    type: ASSET_TYPE_TOKEN,
+    decimals: 6,
+    contract: 'E29pZ9m3UgjfCcbsm75o92DRJFEzSCHdJMg7RatGXMxE',
+    mnemonic: null,
+    privateKey: '64BipJRmh1NdDMGtGxUPg42HNKxBfXX1fw3H7jMmsmoVY1mTT626sLTJqDbwtNMDFvaWKhVftjNx1wKhvGLKPM9r',
+    walletAddress: null,
+    balance: 0,
+    unconfirmedBalance: 0,
+    value: 0,
+    price: 0,
+    active: true,
+    logoURI: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg',
+};
+
+export const goog = {
+    order: 20,
+    symbol: 'GOOG',
+    name: 'Alphabet Inc Class C',
+    id: 'goog',
+    chain: 'SOLANA',
+    chainType: 'SOLANA',
+    type: ASSET_TYPE_TOKEN,
+    decimals: 6,
+    contract: '5r1q11V283MoqGHG6YJoyajBAjdQk1YypS4xQx6waT34',
+    mnemonic: null,
+    privateKey: null,
+    walletAddress: null,
+    balance: 0,
+    unconfirmedBalance: 0,
+    value: 0,
+    price: 0,
+    active: true,
+    logoURI: 'https://s3-symbol-logo.tradingview.com/alphabet--600.png',
+};
+
+export const tsla = {
+    order: 22,
+    symbol: 'TSLA',
+    name: 'Tesla Motors Inc',
+    id: 'tsla',
+    chain: 'SOLANA',
+    chainType: 'SOLANA',
+    type: ASSET_TYPE_TOKEN,
+    decimals: 6,
+    contract: 'Dvk7VTh5NN4qwNux3YCdMfPsULWVopXCSG8uwNbYaqN9',
+    mnemonic: null,
+    privateKey: null,
+    walletAddress: null,
+    balance: 0,
+    unconfirmedBalance: 0,
+    value: 0,
+    price: 0,
+    active: true,
+    logoURI: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Tesla_Motors.svg/1200px-Tesla_Motors.svg.png',
+};
+
+export const aapl = {
+    order: 21,
+    symbol: 'AAPL',
+    name: 'Apple Inc',
+    id: 'aapl',
+    chain: 'SOLANA',
+    chainType: 'SOLANA',
+    type: ASSET_TYPE_TOKEN,
+    decimals: 6,
+    contract: '8xWdpHtw4jmDwHK5pMtN2gzwPaR89tNbGaMHNNpjnTR3',
+    mnemonic: null,
+    privateKey: null,
+    walletAddress: null,
+    balance: 0,
+    unconfirmedBalance: 0,
+    value: 0,
+    price: 0,
+    active: true,
+    logoURI: 'https://www.apple.com/ac/structured-data/images/knowledge_graph_logo.png?201609051049',
+};
+
+export const cnyusd = {
+    order: 23,
+    symbol: 'cnyusd',
+    name: 'Chinese Yuan',
+    id: 'cnyusd',
+    chain: 'SOLANA',
+    chainType: 'SOLANA',
+    type: ASSET_TYPE_TOKEN,
+    decimals: 6,
+    contract: '4LTu6v4zrVFJDVyok5iK9nAdyX6chDNGumMu6vRwKi42',
+    mnemonic: null,
+    privateKey: null,
+    walletAddress: null,
+    balance: 0,
+    unconfirmedBalance: 0,
+    value: 0,
+    price: 0,
+    active: true,
+    logoURI: 'https://responsive.fxempire.com/v7/_fx-ui-mfe_/currencies/production/usd-cny.svg',
+};
+
+export const stockListSymbols =  ['AAPL', 'GOOG', 'TSLA', 'AMZN'];
+
+export const forexListSymbols = ['CNYUSD'];

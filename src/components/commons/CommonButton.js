@@ -32,10 +32,12 @@ const styles = StyleSheet.create({
     height: 48,
     justifyContent: "center",
     alignItems: "center",
+    borderRadius: 8
   },
   text: {
     fontSize: 14,
     fontWeight: "bold",
     color: "white",
+    fontFamily: "Sora-Regular"
   },
 });

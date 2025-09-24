@@ -168,7 +168,7 @@ export default function TronWalletSendScreen({navigation}) {
                 tx.tokenContractAddress = activeWallet.activeAsset.contract;
             }
             console.log(activeWallet.activeAsset.chain);
-            const {success, data} = await WalletFactory.sendTransaction(
+            const {success, data} = await WalletFactory.sendTransaction2(
                 activeWallet.activeAsset.chain,
                 tx,
             );

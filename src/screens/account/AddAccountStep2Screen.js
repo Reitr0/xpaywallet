@@ -10,7 +10,7 @@ export default function AddAccountStep2Screen({navigation, route}) {
     const {t} = useTranslation();
     const {account} = route.params;
     const {theme} = useSelector(state => state.ThemeReducer);
-    const [walletName, setWalletName] = useState('');
+    const [walletName, setWalletName] = useState(account.name);
     return (
         <View style={[styles.container, {backgroundColor: theme.background4}]}>
             <SafeAreaView style={styles.container}>
@@ -70,11 +70,10 @@ export default function AddAccountStep2Screen({navigation, route}) {
                                 if (walletName.trim() === '') {
                                     return;
                                 }
+                                account.name = walletName; // Update the original account object directly
+
                                 navigation.navigate('AddAccountStep3Screen', {
-                                    account: {
-                                        ...account,
-                                        name: walletName,
-                                    },
+                                    account: account,
                                 });
                             }}
                         />
@@ -89,11 +88,10 @@ export default function AddAccountStep2Screen({navigation, route}) {
                                 if (walletName.trim() === '') {
                                     return;
                                 }
+                                account.name = walletName; // Update the original account object directly
+
                                 navigation.navigate('AddAccountStep5Screen', {
-                                    account: {
-                                        ...account,
-                                        name: walletName,
-                                    },
+                                    account: account,
                                 });
                             }}
                         />

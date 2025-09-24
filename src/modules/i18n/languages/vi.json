@@ -1,5 +1,6 @@
 {
   "translation": {
+    "transactionTimeAgo": "{{timeAgo}}",
     "legal": "Hợp pháp",
     "please_review_the_terms_of_service": "Vui lòng xem lại Điều khoản dịch vụ và Chính sách quyền riêng tư của Ví XPay",
     "privacy_policy": "Chính sách quyền riêng tư",
@@ -178,8 +179,8 @@
     "app_lock.autolock": "Tự động khóa",
     "app_lock.lockmethod": "Phương pháp khóa",
     "app_lock.immediate": "Ngay lập tức",
-    "app_lock.away1phút": "Nếu đi vắng trong 1 phút",
-    "app_lock.away5 Minutes": "Nếu đi vắng trong 5 phút",
+    "app_lock.away1minute": "Nếu đi vắng trong 1 phút",
+    "app_lock.away5Minutes": "Nếu đi vắng trong 5 phút",
     "app_lock.away1Hour": "Nếu đi vắng trong 1 giờ",
     "app_lock.away5Hours": "Nếu đi vắng trong 5 giờ",
     "app_lock.passcode": "Mật mã",

@@ -1,5 +1,6 @@
 {
   "translation": {
+    "transactionTimeAgo": "{{timeAgo}}",
     "legal": "ถูกกฎหมาย",
     "please_review_the_terms_of_service": "โปรดตรวจสอบข้อกำหนดในการให้บริการและนโยบายความเป็นส่วนตัวของ Xpay Wallet",
     "privacy_policy": "นโยบายความเป็นส่วนตัว",
@@ -179,7 +180,7 @@
     "app_lock.lockmethod": "วิธีการล็อค",
     "app_lock.immediate": "ทันที",
     "app_lock.away1minute": "หากออกไป 1 นาที",
-    "app_lock.away5 minutes": "หากออกไป 5 นาที",
+    "app_lock.away5minutes": "หากออกไป 5 นาที",
     "app_lock.away1Hour": "หากออกไปเป็นเวลา 1 ชั่วโมง",
     "app_lock.away5Hours": "หากไม่อยู่เป็นเวลา 5 ชั่วโมง",
     "app_lock.passcode": "รหัสผ่าน",

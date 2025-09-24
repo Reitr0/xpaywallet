@@ -1,5 +1,6 @@
 {
   "translation": {
+    "transactionTimeAgo": "{{timeAgo}}",
     "legal": "Legal",
     "please_review_the_terms_of_service": "Pakisuri ang Mga Tuntunin ng Serbisyo at Patakaran sa Privacy ng XPay Wallet",
     "privacy_policy": "Patakaran sa Privacy",

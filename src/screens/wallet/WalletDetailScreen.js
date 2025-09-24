@@ -1,6 +1,12 @@
 import * as React from 'react';
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {RefreshControl, SafeAreaView, StyleSheet, View} from 'react-native';
+import {
+    RefreshControl,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    View,
+} from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import {WalletAction} from '@persistence/wallet/WalletAction';
 import CommonTouchableOpacity from '@components/commons/CommonTouchableOpacity';
@@ -18,7 +24,11 @@ import WebView from 'react-native-webview';
 import Balance from '@components/Balance';
 import CommonAlert from '@components/commons/CommonAlert';
 import {StorageService} from '@modules/core/storage/StorageService';
-import {Logs} from "@modules/log/logs";
+import {Logs} from '@modules/log/logs';
+import MarqueeText from 'react-native-marquee';
+import moment from 'moment';
+import numeral from 'numeral';
+import {ASSET_TYPE_TOKEN} from '@modules/core/constant/constant';
 
 function WalletDetailScreen({route}) {
     const {t} = useTranslation();
@@ -31,24 +41,50 @@ function WalletDetailScreen({route}) {
     const [refreshing, setRefreshing] = useState(false);
     const [transactions, setTransactions] = useState([]);
     const [messageErr, setMessageErr] = useState(null);
+    // const displayValue = ethers.utils.formatEther(item.value.toString());
+
+    const groupTransaction = transaction => {
+        const grouped = {};
+
+        transaction.forEach(item => {
+            const date = moment.unix(item.createdAt);
+
+            let label;
+            if (date.isSame(moment(), 'day')) {
+                label = t('date.today');
+            } else if (date.isSame(moment().subtract(1, 'day'), 'day')) {
+                label = t('date.yesterday');
+            } else {
+                label = date.format('MMMM D, YYYY');
+            }
+
+            if (!grouped[label]) grouped[label] = [];
+            grouped[label].push({...item, type: 'item'});
+        });
+
+        const flattened = [];
+        Object.keys(grouped).forEach(label => {
+            flattened.push({type: 'header', label});
+            flattened.push(...grouped[label]);
+        });
+
+        return flattened;
+    };
+
+    useEffect(() => {
+        const loadTransactions = async () => {
+            await processTransactions(activeWallet.activeAsset);
+        };
+
+        loadTransactions();
+    }, [activeWallet.activeAsset]);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         setMessageErr(null);
         try {
             await dispatch(WalletAction.balance());
-            const result = await getTransactions(activeWallet.activeAsset);
-
-            if (result && result.success) {
-                setTransactions(result.data);
-
-                const storageKey = `transactions_${activeWallet.activeAsset.id}`;
-                await StorageService.setItem(storageKey, result.data);
-            } else {
-                console.error('Error fetching transactions:', result.error);
-                setTransactions([]);
-                setErrorMsg(result.error || 'Failed to fetch transactions. Please try again later.');
-            }
+            await processTransactions(activeWallet.activeAsset);
         } catch (error) {
             Logs.error('WalletFactory: getTransactions', error);
             setTransactions([]);
@@ -60,45 +96,74 @@ function WalletDetailScreen({route}) {
                 onConfirm: () => {
                     setMessageErr(null);
                 },
-            })
+            });
         } finally {
             setRefreshing(false);
             CommonLoading.hide();
         }
-    }, [dispatch, getTransactions, activeWallet.activeAsset]);
+    }, [dispatch, activeWallet.activeAsset]);
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            onRefresh(); // Call your refresh function here
+        });
 
-    const getTransactions = async coin => {
+        return unsubscribe; // Cleanup the listener on unmount
+    }, [navigation, onRefresh]);
+
+    async function processTransactions(wallet) {
         try {
-            const {success, data} = await WalletFactory.getTransactions({
-                ...coin,
-                walletAddress: activeWallet.activeAsset.walletAddress,
-            });
+            let result;
 
-            if (success) {
-                setTransactions(data);
+            if (activeWallet.activeAsset.id === 'solana') {
+                // Consistent check with getSolTransactions
+                result = await WalletFactory.getSolTransactions(wallet);
+            } else if (activeWallet.activeAsset.chain === 'BSC') {
+                result = await WalletFactory.getBscTransaction(wallet);
+            } else if (activeWallet.activeAsset.chain === 'ETH') {
+                result = await WalletFactory.getEthTransaction(wallet);
+            }else if (
+                activeWallet.activeAsset.type === ASSET_TYPE_TOKEN &&
+                activeWallet.activeAsset.chain === 'SOLANA'
+            ) {
+                result = await WalletFactory.getTransactions(wallet);
+            } else {
+                result = await WalletFactory.getTransactions2(wallet);
+            }
 
+            if (!result) {
+                console.error(
+                    'Error fetching transactions: No result returned',
+                );
+                setTransactions([]);
+                return;
+            }
+
+            if (result.success) {
+                const allTransactions = result.data;
+                setTransactions(prevTransactions => [...allTransactions]); // Functional update
                 const storageKey = `transactions_${activeWallet.activeAsset.id}`;
-                await StorageService.setItem(storageKey, data);
+                await StorageService.setItem(storageKey, allTransactions);
+            } else {
+                console.error(
+                    'Error fetching transactions:',
+                    result.error || 'Unknown error',
+                );
+                setTransactions([]);
             }
         } catch (error) {
+            console.error('Error processing transactions:', error);
             setTransactions([]);
-            setMessageErr(error.message);
-            CommonAlert.show({
-                title: t('alert.error'),
-                message: error.message,
-                type: 'error',
-                onConfirm: () => {
-                    setMessageErr(null);
-                },
-            })
         }
-    };
+    }
 
     useEffect(() => {
         const loadStoredTransactions = async () => {
             try {
-                const storageKey = `transactions_${activeWallet.activeAsset.id}`;
-                const storedTransactions = await StorageService.getItem(storageKey);
+                console.log('Load Stored Transaction');
+                const storageKey = `transactions_${activeWallet.activeAsset.id}`; // Use id for storage key
+                const storedTransactions = await StorageService.getItem(
+                    storageKey,
+                );
                 if (storedTransactions) {
                     setTransactions(storedTransactions);
                 }
@@ -108,48 +173,64 @@ function WalletDetailScreen({route}) {
         };
 
         loadStoredTransactions();
-    }, [activeWallet.activeAsset.tokenAddress]);
+    }, [activeWallet.activeAsset.id]);
 
     useEffect(() => {
-        const loadTransactions = async () => {
-            await processTransactions(activeWallet.activeAsset);
+        console.log(activeWallet);
+    }, [activeWallet]);
+
+    const formatSmallValue = (value, coin) => {
+        if (!value) return '0';
+
+        let converted = 0;
+
+        switch (coin) {
+            case 'BNB':
+            case 'ETH':
+            case 'MATIC':
+                converted = parseFloat(value) / 1;
+                break;
+            case 'TRX':
+                converted = parseFloat(value) / 1e6;
+                break;
+            case 'SOL':
+                converted = parseFloat(value) / 1;
+                break;
+            case 'BTC':
+                converted = parseFloat(value) / 1e8;
+                break;
+            default:
+                return numeral(value).format('0,0.[00000]');
+        }
+
+        if (converted < 0.000001 && converted > 0) {
+            return converted.toExponential(8);
+        }
+
+        return converted.toString();
+    };
+    const renderItem = ({item}) => {
+        const handleTransactionPress = () => {
+            navigation.navigate('TransactionDetail', {item});
         };
 
-        loadTransactions();
-    }, [activeWallet.activeAsset]);
-
-    async function processTransactions(wallet) {
-        try {
-            const result = await WalletFactory.getTransactions(wallet);
-
-            if (!result) {
-                console.error("Error fetching transactions: No result returned");
-                setTransactions([]);
-                return;
-            }
-
-            if (result.success) {
-                const allTransactions = result.data;
-                setTransactions(allTransactions);
-            } else {
-                console.error("Error fetching transactions:", result.error || "Unknown error");
-                setTransactions([]);
-            }
-        } catch (error) {
-            console.error("Error processing transactions:", error);
-            setTransactions([]);
+        if (item.type === 'header') {
+            return (
+                <CommonText
+                    style={[
+                        {paddingTop: 8, fontWeight: 'bold', color: theme.text2},
+                    ]}>
+                    {item.label}
+                </CommonText>
+            );
         }
-    }
 
-    const renderItem = ({item}) => {
         return (
             <CommonTouchableOpacity
-                onPress={async () => {
-                    actionSheetRef.current?.show();
-                    setUrl(item.explore);
-                }}
+                onPress={handleTransactionPress}
                 style={[styles.item, {borderBottomColor: theme.border}]}>
                 <View style={styles.itemIcon}>
+                    {/* <Text style={{color}}></Text> */}
                     <CommonImage
                         source={
                             item.isSender
@@ -163,13 +244,36 @@ function WalletDetailScreen({route}) {
                     <CommonText
                         ellipsizeMode="middle"
                         numberOfLines={1}
-                        style={styles.itemToAddressText}>
-                        {item.isSender ? item.to : item.from}
+                        style={[
+                            {
+                                fontFamily: 'Sora-Bold',
+                                color:
+                                    item.status == '-1'
+                                        ? theme.success
+                                        : theme.error,
+                            },
+                        ]}>
+                        {t(
+                            item.status == '-1'
+                                ? 'transactionStatus.success'
+                                : 'transactionStatus.fail',
+                        )}
                     </CommonText>
                     <CommonText
-                        style={[styles.itemAmountSub, {color: theme.subText}]}>
-                        {item.createdAt}
+                        ellipsizeMode="middle"
+                        numberOfLines={1}
+                        style={[
+                            styles.itemToAddressText,
+                            {color: theme.text2},
+                        ]}>
+                        {item.isSender ? item.to : item.from}
                     </CommonText>
+                    {/* <CommonText
+                        style={[styles.itemAmountSub, { color: theme.subText }]}>
+                        {item.createdAt
+                            ? moment(item.createdAt * 1000).fromNow()
+                            : "N/A"}
+                    </CommonText> */}
                 </View>
                 <View style={styles.itemAmount}>
                     <CommonText
@@ -177,17 +281,46 @@ function WalletDetailScreen({route}) {
                             styles.itemAmountText,
                             {color: item.isSender ? '#f33360' : '#24a86f'},
                         ]}>
-                        {item.isSender ? '-' : '+'}
-                        <Balance
+                        <View
                             style={{
-                                color: item.isSender ? '#f33360' : '#24a86f',
-                            }}
-                            symbol={
-                                activeWallet.activeAsset.symbol ||
-                                activeWallet.activeAsset.tokenSymbol
-                            }>
-                            {item.value}
-                        </Balance>
+                                justifyContent: 'flex-end',
+                                alignItems: 'flex-end',
+                                maxWidth: 96,
+                                display: 'flex',
+                            }}>
+                            <MarqueeText
+                                style={{
+                                    textAlign: 'right',
+                                    fontSize: 11,
+                                    fontWeight: '600',
+                                    color: item.isSender
+                                        ? '#f33360'
+                                        : '#24a86f',
+                                    fontFamily: 'Sora-Regular',
+                                }}
+                                speed={1}
+                                marqueeOnStart={true}
+                                loop={true}
+                                delay={2000}>
+                                {item.isSender ? '-' : '+'}
+                                {formatSmallValue(
+                                    item.value,
+                                    activeWallet.activeAsset.symbol,
+                                )}{' '}
+                                {(
+                                    activeWallet?.activeAsset?.symbol ||
+                                    activeWallet?.activeAsset?.tokenSymbol ||
+                                    ''
+                                ).toUpperCase()}
+                                {/* <Balance
+                                    symbol={
+                                        activeWallet.activeAsset.symbol ||
+                                        activeWallet.activeAsset.tokenSymbol
+                                    }>
+                                    {item.value}
+                                </Balance> */}
+                            </MarqueeText>
+                        </View>
                     </CommonText>
                 </View>
             </CommonTouchableOpacity>
@@ -217,6 +350,18 @@ function WalletDetailScreen({route}) {
                         </CommonText>
                     </View>
                 </View>
+                <View style={{marginTop: 32}}>
+                    <CommonImage
+                        source={{uri: activeWallet.activeAsset.logoURI}}
+                        style={styles.img}
+                    />
+                    {/* {item.type !== ASSET_TYPE_COIN && (
+                        <CommonImage
+                            source={{ uri: chainLogo }}
+                            style={styles.itemChainImg}
+                        />
+                    )} */}
+                </View>
                 <View
                     style={[
                         styles.balanceContainer,
@@ -224,7 +369,7 @@ function WalletDetailScreen({route}) {
                     ]}>
                     <Balance
                         style={[styles.balanceText, {color: theme.text2}]}
-                        symbol={activeWallet.activeAsset.symbol}>
+                        symbol={activeWallet.activeAsset.symbol.toUpperCase()}>
                         {activeWallet.activeAsset.balance}
                     </Balance>
                 </View>
@@ -250,7 +395,8 @@ function WalletDetailScreen({route}) {
                             ) {
                                 nextScreen = 'BtcWalletSendScreen';
                             } else if (
-                                activeWallet.activeAsset.chain === 'SOLANA' ) {
+                                activeWallet.activeAsset.chain === 'SOLANA'
+                            ) {
                                 nextScreen = 'SolanaWalletSendScreen';
                             }
                             navigation.navigate(nextScreen, {
@@ -269,7 +415,7 @@ function WalletDetailScreen({route}) {
                                 color={theme.text}
                             />
                         </View>
-                        <CommonText style={{color: theme.button}}>
+                        <CommonText style={{fontSize: 11, color: theme.button}}>
                             {t('wallet.send')}
                         </CommonText>
                     </CommonTouchableOpacity>
@@ -292,7 +438,7 @@ function WalletDetailScreen({route}) {
                                 color={theme.text}
                             />
                         </View>
-                        <CommonText style={{color: theme.button}}>
+                        <CommonText style={{fontSize: 11, color: theme.button}}>
                             {t('wallet.receive')}
                         </CommonText>
                     </CommonTouchableOpacity>
@@ -331,7 +477,7 @@ function WalletDetailScreen({route}) {
                     <View style={styles.tabViewContent}>
                         <CommonFlatList
                             messageTrx={messageErr}
-                            data={transactions}
+                            data={groupTransaction(transactions)}
                             renderItem={renderItem}
                             keyExtractor={item => item.hash}
                             showsVerticalScrollIndicator={false}
@@ -350,7 +496,11 @@ function WalletDetailScreen({route}) {
                                         />
                                         <CommonText
                                             style={{color: theme.subText}}>
-                                            {messageErr ? messageErr : t('wallet.your_transaction_will_appear_here')}
+                                            {messageErr
+                                                ? messageErr
+                                                : t(
+                                                      'wallet.your_transaction_will_appear_here',
+                                                  )}
                                         </CommonText>
                                     </View>
                                 );
@@ -417,11 +567,11 @@ const styles = StyleSheet.create({
         width: '100%',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 20,
+        paddingVertical: 4,
     },
     balanceText: {
-        fontSize: 35,
-        fontWeight: 'bold',
+        fontSize: 23,
+        fontFamily: 'Kanchenjunga-SemiBold',
     },
     walletNameText: {
         fontSize: 10,
@@ -502,12 +652,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottomWidth: 0.3,
+        borderBottomWidth: 0,
     },
     itemImg: {
         width: 42,
         height: 42,
         borderRadius: 10000,
+    },
+    img: {
+        width: 64,
+        height: 64,
+        marginRight: 0,
+        justifyContent: 'center',
+        alignSelf: 'center',
+        borderRadius: 100,
+        backgroundColor: 'black',
     },
     itemIcon: {
         width: 30,
@@ -527,18 +686,16 @@ const styles = StyleSheet.create({
     },
     itemAmountText: {
         color: '#f33360',
-        fontSize: 15,
-        fontWeight: 'bold',
+        fontSize: 13,
     },
     itemAmountSub: {
         color: '#8c8c8c',
-        fontSize: 13,
-        fontWeight: 'bold',
+        fontSize: 12,
+        // fontWeight: 'bold',
     },
     itemToAddressText: {
-        color: '#343434',
-        fontSize: 15,
-        fontWeight: 'bold',
+        fontFamily: 'Sora-Bold',
+        fontSize: 11,
     },
     emptyContainer: {
         width: '100%',

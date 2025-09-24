@@ -21,4 +21,18 @@ export const dark = {
   inputBackground: "#223040",
   inputText: "#fff",
   inputIcon: "#fff",
+  longColor: '#2eb781',
+  shortColor: '#eb455a',
+  gradient1: ['#f55f50', '#f55249', '#f55249'],
+  text1: '#000',
+  text4: '#f6640a',
+  text5: '#ff0000',
+  text6: '#f5b60f',
+  text7: '#868686',
+  textTable: '#fefefe',
+  border: '#1a2331',
+  backgroundTable: '#223040',
+  success: "#8EFFC1",
+  error: '#790F1B',
+  gradientMain: ['#223040', '#1a2331']
 };

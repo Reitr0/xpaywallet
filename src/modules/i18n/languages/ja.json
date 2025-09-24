@@ -1,5 +1,6 @@
 {
   "translation": {
+    "transactionTimeAgo": "{{timeAgo}}",
     "legal": "法律上の",
     "please_review_the_terms_of_service": "XPay ウォレットの利用規約とプライバシー ポリシーを確認してください",
     "privacy_policy": "プライバシー ポリシー",
@@ -178,8 +179,8 @@
     "app_lock.autolock": "自動ロック",
     "app_lock.lockmethod": "ロック方法",
     "app_lock.immediate": "即時",
-    "app_lock.away1mount": "1 分間離れた場合",
-    "app_lock.away5 minutes": "5 分間離れた場合",
+    "app_lock.away1minute": "1 分間離れた場合",
+    "app_lock.away5minutes": "5 分間離れた場合",
     "app_lock.away1Hour": "1 時間離れた場合",
     "app_lock.away5Hours": "5 時間離れた場合",
     "app_lock.passcode": "パスコード",

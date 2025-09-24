@@ -14,6 +14,7 @@ import {
 } from '@metamask/eth-sig-util';
 import {toBuffer} from 'ethereumjs-util';
 import {pbkdf2} from 'react-native-fast-crypto';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export class EthWallet implements Wallet {
     provider: EthProvider;
@@ -36,15 +37,16 @@ export class EthWallet implements Wallet {
         web3.eth.defaultAccount = this.signer.address;
         this.web3Signer = web3;
     }
+
     async mnemonicToSeed(mnemonic, passphrase = '') {
+        console.log('Passphrase used:', passphrase);
         const mnemonicBuffer = Buffer.from(mnemonic, 'utf8');
-        const saltBuffer = Buffer.from('mnemonic' + passphrase, 'utf8'); // BIP39 specifies "mnemonic" + passphrase
-        const iterations = 2048; // BIP39 standard
-        const keyLength = 64; // BIP39 standard length for seed
-        const alg = 'sha512'; // BIP39 uses SHA512
+        const saltBuffer = Buffer.from('mnemonic' + passphrase, 'utf8');
+        const iterations = 2048;
+        const keyLength = 64;
+        const alg = 'sha512';
 
         try {
-            // Using pbkdf2.deriveAsync from your defined methods
             const seed = await pbkdf2.deriveAsync(
                 mnemonicBuffer,
                 saltBuffer,
@@ -52,23 +54,38 @@ export class EthWallet implements Wallet {
                 keyLength,
                 alg,
             );
-
-            // Convert the result to hex format if needed or use it as is
+            console.log('Generated seed:', seed.toString('hex'));
             return seed.toString('hex');
         } catch (error) {
             console.error('Error generating seed from mnemonic:', error);
             throw error;
         }
     }
+
+    async saveMnemonic(mnemonic: string) {
+        await AsyncStorage.setItem('walletMnemonic', mnemonic);
+    }
+
+    async getMnemonic(): Promise<string | null> {
+        return await AsyncStorage.getItem('walletMnemonic');
+    }
+
     async fromMnemonic(data, mnemonic): Promise<Object> {
         try {
+            const mnemonicToUse = mnemonic || (await this.getMnemonic());
+            if (!mnemonicToUse) {
+                throw new Error('No mnemonic provided or stored');
+            }
+            console.log('Mnemonic used:', mnemonicToUse);
             const provider = await ProviderFactory.getProvider(data.chain);
             const wallet = await this.createWallet(
-                mnemonic,
+                mnemonicToUse,
                 0,
                 provider.provider,
             );
             this.setSigner(wallet);
+            await this.saveMnemonic(mnemonicToUse);
+            console.log('Generated address:', wallet.address);
             return {
                 success: true,
                 data: {
@@ -88,22 +105,17 @@ export class EthWallet implements Wallet {
         }
     }
 
-    async createWallet(mnemonic, index, provider): Promise<Wallet> {
-        const seed = await this.mnemonicToSeed(mnemonic);
-        const hdNode = hdkey.fromMasterSeed(Buffer.from(seed, 'hex'));
-        const node = hdNode.derivePath("m/44'/60'/0'");
-        const change = node.deriveChild(0);
-        const childNode = change.deriveChild(index);
-        const childWallet = childNode.getWallet();
-        return new Wallet(
-            childWallet.getPrivateKey().toString('hex'),
-            provider,
-        );
+    async createWallet(mnemonic, index = 0, provider): Promise<Wallet> {
+        console.log('Derivation index:', index);
+        const path = `m/44'/60'/0'/0/${index}`;
+        const wallet = ethers.Wallet.fromMnemonic(mnemonic, path);
+        console.log('Derived address:', wallet.address);
+        return wallet.connect(provider);
     }
 
     async fromPrivateKey(data): Promise<Object> {
         try {
-            const provider = ProviderFactory.getProvider(data.chain);
+            const provider = await ProviderFactory.getProvider(data.chain);
             const wallet = new ethers.Wallet(
                 data.privateKey,
                 provider.provider,
@@ -250,7 +262,7 @@ export class EthWallet implements Wallet {
             const provider = await ProviderFactory.getProvider(wallet.chain);
             return {
                 success: true,
-                data: await provider.getTransactions(wallet),
+                data: await provider.getTransactions2(wallet),
             };
         } catch (e) {
             Logs.info('EthWallet: getTransactions', e);
@@ -269,18 +281,13 @@ export class EthWallet implements Wallet {
     }
 
     async signTypedData(dataToSign: any) {
-        // console.log('private key', this.privateKey);
         console.log(this.data.privateKey);
         let privateKeyBuffer = toBuffer(this.data.privateKey);
-        // console.log('privateKeyBuffer', privateKeyBuffer);
-        // console.log('dataToSign', dataToSign);
-        // console.log('sig', sig);
         return web3SignTypeData({
             privateKey: privateKeyBuffer,
             data: dataToSign,
             version: SignTypedDataVersion.V3,
         });
-        // return (this.client.eth.accounts.sign(dataToSign, this.privateKey)).signature;
     }
 
     async signTransaction(transactionObject) {

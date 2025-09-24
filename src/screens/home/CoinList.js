@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import usePriceHook from '@persistence/price/PriceHook';
 import Price from '@components/Price';
 import {Dimensions, StyleSheet, View} from 'react-native';
@@ -18,9 +18,14 @@ import CommonLoading from '@components/commons/CommonLoading';
 import {MarketAction} from '@persistence/market/MarketAction';
 import {useWalletList} from '@persistence/wallet/WalletHook';
 import {applicationProperties} from '@src/application.properties';
-import {ASSET_TYPE_COIN} from '@modules/core/constant/constant';
+import {
+    ASSET_TYPE_COIN,
+    forexListSymbols,
+    stockListSymbols,
+} from '@modules/core/constant/constant';
 import _ from 'lodash';
-import {StorageService} from "@modules/core/storage/StorageService";
+import {StorageService} from '@modules/core/storage/StorageService';
+import {WALLET_LIST_KEY} from '@persistence/wallet/WalletConstant';
 
 function CoinList(props) {
     const {getPriceData} = usePriceHook();
@@ -39,11 +44,23 @@ function CoinList(props) {
         });
     }, []);
     const [mxgPrice, setMXGPrice] = useState(null);
+    const [bitcoinPrice, setBitcoinPrice] = useState(null);
+    const [ethPrice, setEthPrice] = useState(null);
+    const [dogePrice, setDogePrice] = useState(null);
+    const [ltcPrice, setLtcPrice] = useState(null);
+    const [usdcPrice, setUsdcPrice] = useState(null);
+    const initialPrice = useRef(null);
+    const ltcinitialPrice = useRef(null);
+    const dogeinitialPrice = useRef(null);
+    const ethinitialPrice = useRef(null);
+    const usdcInitialPrice = useRef(null);
 
     useEffect(() => {
         const fetchPrice = async () => {
             try {
-                const response = await fetch('https://account.metaxbank.io/api/mx-gold-price');
+                const response = await fetch(
+                    'https://account.metaxbank.io/api/mx-gold-price',
+                );
                 const priceText = await response.text();
                 setMXGPrice(parseFloat(priceText)); // Store the price as a number
             } catch (error) {
@@ -52,6 +69,285 @@ function CoinList(props) {
         };
 
         fetchPrice();
+    }, []);
+    useEffect(() => {
+        const fetchBitcoinPrice = async () => {
+            try {
+                const url = 'https://pro-api.coingecko.com/api/v3/simple/price'; // Example paid API endpoint
+                const params = {
+                    ids: 'bitcoin',
+                    vs_currencies: 'usd',
+                };
+                const headers = {
+                    'x-cg-pro-api-key': 'CG-LNED56hrE5VAyB57GyXBkuSu', // Include your API key
+                };
+
+                const response = await fetch(
+                    `${url}?${new URLSearchParams(params)}`,
+                    {headers},
+                );
+                const data = await response.json();
+
+                const price = parseFloat(data.bitcoin.usd);
+
+                // Load the initial price from localStorage on the first render
+                if (initialPrice.current === null) {
+                    const storedPrice = await StorageService.getItem(
+                        'initialBitcoinPrice',
+                    );
+                    if (storedPrice) {
+                        initialPrice.current = parseFloat(storedPrice);
+                        setBitcoinPrice(initialPrice.current);
+                    } else {
+                        initialPrice.current = price;
+                        await StorageService.setItem(
+                            'initialBitcoinPrice',
+                            price,
+                        );
+                    }
+                }
+
+                setBitcoinPrice(price);
+
+                // Save the latest price to localStorage after each fetch
+                await StorageService.setItem('latestBitcoinPrice', price);
+            } catch (error) {
+                console.error('Error fetching Bitcoin price:', error);
+            }
+        };
+
+        // Check if it's a new day and reset the initial price
+        const resetInitialPrice = async () => {
+            const lastResetDate = await StorageService.getItem('lastResetDate');
+            const today = new Date().toDateString();
+
+            if (lastResetDate !== today) {
+                // It's a new day, reset initial price
+                initialPrice.current = bitcoinPrice;
+                await StorageService.setItem(
+                    'initialBitcoinPrice',
+                    bitcoinPrice,
+                );
+                await StorageService.setItem('lastResetDate', today);
+            }
+        };
+
+        // Call resetInitialPrice on initial render and every subsequent fetch
+        resetInitialPrice();
+        fetchBitcoinPrice();
+        const intervalId = setInterval(() => {
+            fetchBitcoinPrice();
+            resetInitialPrice();
+        }, 10000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+    useEffect(() => {
+        const fetchEthPrice = async () => {
+            try {
+                const url = 'https://pro-api.coingecko.com/api/v3/simple/price'; // Example paid API endpoint
+                const params = {
+                    ids: 'ethereum',
+                    vs_currencies: 'usd',
+                };
+                const headers = {
+                    'x-cg-pro-api-key': 'CG-LNED56hrE5VAyB57GyXBkuSu', // Include your API key
+                };
+
+                const response = await fetch(
+                    `${url}?${new URLSearchParams(params)}`,
+                    {headers},
+                );
+                const data = await response.json();
+
+                const price = parseFloat(data.ethereum.usd);
+
+                // Load initial price from localStorage
+                if (ethinitialPrice.current === null) {
+                    const storedPrice = await StorageService.getItem(
+                        'initialEthPrice',
+                    );
+                    if (storedPrice) {
+                        ethinitialPrice.current = parseFloat(storedPrice);
+                        setEthPrice(ethinitialPrice.current);
+                    } else {
+                        ethinitialPrice.current = price;
+                        await StorageService.setItem('initialEthPrice', price);
+                    }
+                }
+
+                setEthPrice(price);
+
+                // Save the latest price to localStorage after each fetch
+                await StorageService.setItem('latestEthPrice', price);
+            } catch (error) {
+                console.error('Error fetching Ethereum price:', error);
+            }
+        };
+
+        const resetethInitialPrice = async () => {
+            const lastResetDate = await StorageService.getItem('lastResetDate');
+            const today = new Date().toDateString();
+
+            if (lastResetDate !== today) {
+                // It's a new day, reset initial price
+                ethinitialPrice.current = ethPrice;
+                await StorageService.setItem('initialEthPrice', ethPrice);
+                await StorageService.setItem('lastResetDate', today);
+            }
+        };
+        resetethInitialPrice();
+        fetchEthPrice();
+        const intervalId = setInterval(() => {
+            fetchEthPrice();
+            resetethInitialPrice();
+        }, 10000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+    useEffect(() => {
+        const fetchDogePrice = async () => {
+            try {
+                const url = 'https://pro-api.coingecko.com/api/v3/simple/price'; // Example paid API endpoint
+                const params = {
+                    ids: 'dogecoin',
+                    vs_currencies: 'usd',
+                };
+                const headers = {
+                    'x-cg-pro-api-key': 'CG-LNED56hrE5VAyB57GyXBkuSu', // Include your API key
+                };
+
+                const response = await fetch(
+                    `${url}?${new URLSearchParams(params)}`,
+                    {headers},
+                );
+                const data = await response.json();
+
+                const price = parseFloat(data.dogecoin.usd);
+
+                // Load initial price from localStorage
+                if (dogeinitialPrice.current === null) {
+                    const storedPrice = await StorageService.getItem(
+                        'initialDogePrice',
+                    );
+                    if (storedPrice) {
+                        dogeinitialPrice.current = parseFloat(storedPrice);
+                        setDogePrice(dogeinitialPrice.current);
+                    } else {
+                        dogeinitialPrice.current = price;
+                        await StorageService.setItem('initialDogePrice', price);
+                    }
+                }
+
+                setDogePrice(price);
+
+                // Save the latest price to localStorage after each fetch
+                await StorageService.setItem('latestDogePrice', price);
+            } catch (error) {
+                console.error('Error fetching Dogecoin price:', error);
+            }
+        };
+
+        fetchDogePrice();
+        const intervalId = setInterval(fetchDogePrice, 10000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+    useEffect(() => {
+        const fetchLtcPrice = async () => {
+            try {
+                const url = 'https://pro-api.coingecko.com/api/v3/simple/price'; // Example paid API endpoint
+                const params = {
+                    ids: 'litecoin',
+                    vs_currencies: 'usd',
+                };
+                const headers = {
+                    'x-cg-pro-api-key': 'CG-LNED56hrE5VAyB57GyXBkuSu', // Include your API key
+                };
+
+                const response = await fetch(
+                    `${url}?${new URLSearchParams(params)}`,
+                    {headers},
+                );
+                const data = await response.json();
+
+                const price = parseFloat(data.litecoin.usd);
+
+                // Load initial price from localStorage
+                if (ltcinitialPrice.current === null) {
+                    const storedPrice = await StorageService.getItem(
+                        'initialLtcPrice',
+                    );
+                    if (storedPrice) {
+                        ltcinitialPrice.current = parseFloat(storedPrice);
+                        setLtcPrice(ltcinitialPrice.current);
+                    } else {
+                        ltcinitialPrice.current = price;
+                        await StorageService.setItem('initialLtcPrice', price);
+                    }
+                }
+
+                setLtcPrice(price);
+
+                // Save the latest price to localStorage after each fetch
+                await StorageService.setItem('latestLtcPrice', price);
+            } catch (error) {
+                console.error('Error fetching Litecoin price:', error);
+            }
+        };
+
+        fetchLtcPrice();
+        const intervalId = setInterval(fetchLtcPrice, 10000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+    useEffect(() => {
+        const fetchUsdcPrice = async () => {
+            try {
+                const url = 'https://pro-api.coingecko.com/api/v3/simple/price';
+                const params = {
+                    ids: 'usd-coin',
+                    vs_currencies: 'usd',
+                };
+                const headers = {
+                    'x-cg-pro-api-key': 'CG-LNED56hrE5VAyB57GyXBkuSu',
+                };
+
+                const response = await fetch(
+                    `${url}?${new URLSearchParams(params)}`,
+                    {headers},
+                );
+                const data = await response.json();
+
+                const price = parseFloat(data['usd-coin'].usd);
+
+                // Load initial price from localStorage
+                if (usdcInitialPrice.current === null) {
+                    const storedPrice = await StorageService.getItem(
+                        'initialUsdcPrice',
+                    );
+                    if (storedPrice) {
+                        usdcInitialPrice.current = parseFloat(storedPrice);
+                        setUsdcPrice(usdcInitialPrice.current);
+                    } else {
+                        usdcInitialPrice.current = price;
+                        await StorageService.setItem('initialUsdcPrice', price);
+                    }
+                }
+
+                setUsdcPrice(price);
+
+                // Save the latest price to localStorage after each fetch
+                await StorageService.setItem('latestUsdcPrice', price);
+            } catch (error) {
+                console.error('Error fetching USDC price:', error);
+            }
+        };
+
+        fetchUsdcPrice();
+        const intervalId = setInterval(fetchUsdcPrice, 10000);
+
+        return () => clearInterval(intervalId);
     }, []);
     useEffect(() => {}, []);
     useFocusEffect(
@@ -65,11 +361,48 @@ function CoinList(props) {
 
             refreshData();
 
-            return () => {
-            };
-        }, [])
+            return () => {};
+        }, []),
     );
+    function getConditionalStyling(
+        item,
+        mxgPrice,
+        bitcoinPrice,
+        ethPrice,
+        dogePrice,
+        ltcPrice,
+        usdcPrice,
+    ) {
+        const itemId = item.id.toLowerCase();
 
+        if (itemId.includes('mxg')) {
+            return (mxgPrice - 0.83) * 100 > 0
+                ? {backgroundColor: '#2eb781'}
+                : {backgroundColor: '#eb445a'};
+        } else if (itemId.includes('btc')) {
+            return (bitcoinPrice - initialPrice.current) / 100 > 0
+                ? {backgroundColor: '#2eb781'}
+                : {backgroundColor: '#eb445a'};
+        } else if (itemId.includes('eths')) {
+            return (ethPrice - ethinitialPrice.current) / 100 > 0
+                ? {backgroundColor: '#2eb781'}
+                : {backgroundColor: '#eb445a'};
+        } else if (itemId.includes('doge')) {
+            return (dogePrice - dogeinitialPrice.current) * 100 > 0
+                ? {backgroundColor: '#2eb781'}
+                : {backgroundColor: '#eb445a'};
+        } else if (itemId.includes('ltc')) {
+            return (ltcPrice - ltcinitialPrice.current) / 100 > 0
+                ? {backgroundColor: '#2eb781'}
+                : {backgroundColor: '#eb445a'};
+        } else if (itemId.includes('usdc')) {
+            return (usdcPrice - usdcInitialPrice.current) / 100 > 0
+                ? {backgroundColor: '#2eb781'}
+                : {backgroundColor: '#eb445a'};
+        }
+
+        return {}; // No additional styling if no condition matches
+    }
     const renderItem = ({item}) => {
         let chainLogo = applicationProperties.logoURI.eth;
         switch (item.chain) {
@@ -123,7 +456,21 @@ function CoinList(props) {
                                     styles.itemSymbol,
                                     {color: getPriceData(item.id, 4)},
                                 ]}>
-                                {item.id.toLowerCase().includes("xusdt") ? 1 : item.id.toLowerCase().includes("usdt") ? 1 : item.id.toLowerCase().includes("mxg") ? mxgPrice : getPriceData(item.id, 0)}
+                                {item.id.toLowerCase().includes('xusdt')
+                                    ? 1
+                                    : item.id.toLowerCase().includes('mxg')
+                                    ? mxgPrice
+                                    : item.id.toLowerCase().includes('btc')
+                                    ? bitcoinPrice
+                                    : item.id.toLowerCase().includes('eths')
+                                    ? ethPrice
+                                    : item.id.toLowerCase().includes('doge')
+                                    ? dogePrice
+                                    : item.id.toLowerCase().includes('ltc')
+                                    ? ltcPrice
+                                    : item.id.toLowerCase().includes('usdc')
+                                    ? usdcPrice
+                                    : getPriceData(item.id, 0)}
                             </Price>
                         </View>
                     </View>
@@ -142,7 +489,21 @@ function CoinList(props) {
                                     styles.itemSymbol,
                                     {color: getPriceData(item.id, 4)},
                                 ]}>
-                                {item.id.toLowerCase().includes("xusdt") ? 1 * item.balance : item.id.toLowerCase().includes("usdt") ? 1 * item.balance : item.id.toLowerCase().includes("mxg") ? mxgPrice * item.balance : item.balance * getPriceData(item.id, 0)}
+                                {item.id.toLowerCase().includes('xusdt')
+                                    ? 1 * item.balance
+                                    : item.id.toLowerCase().includes('mxg')
+                                    ? mxgPrice * item.balance
+                                    : item.id.toLowerCase().includes('btc')
+                                    ? bitcoinPrice * item.balance
+                                    : item.id.toLowerCase().includes('eths')
+                                    ? ethPrice * item.balance
+                                    : item.id.toLowerCase().includes('doge')
+                                    ? dogePrice * item.balance
+                                    : item.id.toLowerCase().includes('ltc')
+                                    ? ltcPrice * item.balance
+                                    : item.id.toLowerCase().includes('usdc')
+                                    ? usdcPrice * item.balance
+                                    : item.balance * getPriceData(item.id, 0)}
                             </Price>
                         </View>
                     </View>
@@ -150,19 +511,36 @@ function CoinList(props) {
                         style={[
                             styles.percentContainer,
                             {
-                                backgroundColor: getPriceData(item.id, 5),
-                                // Conditional styling based on item.id and mxgPrice
-                                ...(item.id.toLowerCase().includes("mxg") && (mxgPrice - 0.8300) * 100 < 0
-                                    ? { backgroundColor: '#eb445a' } // Red background if condition is true
-                                    : {} ) // No additional styling if condition is false
-                            }
+                                backgroundColor: getPriceData(item.id, 5), // Keep existing backgroundColor logic
+                                ...getConditionalStyling(
+                                    item,
+                                    mxgPrice,
+                                    bitcoinPrice,
+                                    ethPrice,
+                                    dogePrice,
+                                    ltcPrice,
+                                    usdcPrice,
+                                ),
+                            },
                         ]}>
                         <NumberFormatted
                             decimals={2}
                             sign={true}
                             style={{color: theme.text, fontSize: 13}}
                             symbol={'%'}>
-                            {item.id.toLowerCase().includes("mxg") ? (mxgPrice - 0.8300) * 100 :getPriceData(item.id, 1)}
+                            {item.id.toLowerCase().includes('mxg')
+                                ? (mxgPrice - 0.96) * 100
+                                : item.id.toLowerCase().includes('btc')
+                                ? (bitcoinPrice - initialPrice.current) / 100
+                                : item.id.toLowerCase().includes('eths')
+                                ? (ethPrice - ethinitialPrice.current) / 100
+                                : item.id.toLowerCase().includes('doge')
+                                ? (dogePrice - dogeinitialPrice.current) * 100
+                                : item.id.toLowerCase().includes('ltc')
+                                ? (ltcPrice - ltcinitialPrice.current) / 100
+                                : item.id.toLowerCase().includes('usdc')
+                                ? (usdcPrice - usdcInitialPrice.current) / 100
+                                : getPriceData(item.id, 1)}
                         </NumberFormatted>
                     </View>
                 </View>
@@ -171,7 +549,12 @@ function CoinList(props) {
     };
     return (
         <CommonFlatList
-            data={wallets}
+            data={wallets.filter(
+                wallet =>
+                    ![...stockListSymbols, ...forexListSymbols].includes(
+                        wallet.symbol.toUpperCase(),
+                    ),
+            )}
             showsVerticalScrollIndicator={false}
             renderItem={renderItem}
             keyExtractor={item => `${item.id}${item.chain}${item.contract}`}
@@ -182,7 +565,10 @@ function CoinList(props) {
                     <View style={styles.addTokenButton}>
                         <CommonButton
                             text={t('token.manage')}
-                            textStyle={{color: theme.text}}
+                            textStyle={{
+                                color: theme.text,
+                                fontFamily: 'Sora-Bold',
+                            }}
                             onPress={() => {
                                 navigation.navigate('TokenScreen');
                             }}
@@ -270,10 +656,10 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
     itemName: {
-        fontSize: 15,
+        fontSize: 13,
     },
     itemSymbol: {
-        fontSize: 12,
+        fontSize: 11,
     },
     itemPrice: {
         flexDirection: 'row',
@@ -284,7 +670,9 @@ const styles = StyleSheet.create({
     },
     addTokenButton: {
         width: '100%',
-        borderRadius: 15,
+        marginBottom: 16,
+        height: 40,
+        borderRadius: 50, // Add this line to make the button rounded
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -312,6 +700,8 @@ const styles = StyleSheet.create({
         width: 42,
         height: 42,
         borderRadius: 10000,
+        borderWidth: 1,
+        borderColor: 'blue',
         backgroundColor: 'black',
     },
     notifyContainer: {
@@ -332,6 +722,7 @@ const styles = StyleSheet.create({
     logo: {
         width: 24,
         height: 24,
+        padding: 5,
         borderRadius: 100,
     },
     nftItem: {

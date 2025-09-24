@@ -3,6 +3,10 @@ import {
     DEFAULT_WALLET,
     WALLET_LIST_KEY,
 } from '@persistence/wallet/WalletConstant';
+import {
+    DEFAULT_STOCK,
+    STOCK_LIST_KEY,
+} from '@persistence/wallet/StockConstant';
 import _ from 'lodash';
 import {WalletFactory} from '@modules/core/factory/WalletFactory';
 import {
@@ -78,7 +82,7 @@ async function insert({
             chain,
         };
         walletList.push(wallet);
-        StorageService.setItem(WALLET_LIST_KEY, {
+        await StorageService.setItem(WALLET_LIST_KEY, {
             wallets: walletList,
             activeWallet: wallet,
         });
@@ -108,7 +112,7 @@ async function update(wallet) {
         if (activeWallet.id === wallet.id) {
             activeWallet.name = wallet.name;
         }
-        StorageService.setItem(WALLET_LIST_KEY, {
+        await StorageService.setItem(WALLET_LIST_KEY, {
             wallets: wallets,
             activeWallet: activeWallet,
         });
@@ -134,7 +138,7 @@ async function remove(wallet) {
             return;
         }
         _.remove(wallets, {id: wallet.id});
-        StorageService.setItem(WALLET_LIST_KEY, {
+        await StorageService.setItem(WALLET_LIST_KEY, {
             wallets: wallets,
             activeWallet: activeWallet,
         });
@@ -160,7 +164,7 @@ async function setActiveWallet(wallet) {
         );
         wallet.coins = coins;
         wallet.tokens = tokens;
-        StorageService.setItem(WALLET_LIST_KEY, {
+        await StorageService.setItem(WALLET_LIST_KEY, {
             wallets: wallets,
             activeWallet: wallet,
         });
@@ -231,7 +235,7 @@ async function addAsset(asset) {
         activeWallet.tokens = tokens;
         let index = _.findIndex(wallets, {id: activeWallet.id});
         wallets.splice(index, 1, activeWallet);
-        StorageService.setItem(WALLET_LIST_KEY, {
+        await StorageService.setItem(WALLET_LIST_KEY, {
             wallets: wallets,
             activeWallet: activeWallet,
         });
@@ -257,7 +261,7 @@ async function removeAsset(asset) {
         activeWallet.tokens = tokens;
         let index = _.findIndex(wallets, {id: activeWallet.id});
         wallets.splice(index, 1, activeWallet);
-        StorageService.setItem(WALLET_LIST_KEY, {
+        await StorageService.setItem(WALLET_LIST_KEY, {
             wallets: wallets,
             activeWallet: activeWallet,
         });
@@ -275,31 +279,26 @@ async function removeAsset(asset) {
 
 async function balance() {
     try {
-        const {activeWallet, wallets} = await StorageService.getItem(
-            WALLET_LIST_KEY,
-        );
+        const { activeWallet, wallets } = await StorageService.getItem(WALLET_LIST_KEY);
 
-        var coins = activeWallet.coins
-        var tokens
+        let coins = activeWallet.coins;
+        let tokens;
 
-        if(activeWallet.tokens.length) {
-            tokens = activeWallet.tokens
+        if (activeWallet.tokens.length) {
+            tokens = activeWallet.tokens;
         } else {
-            if(wallets.length > 0){
-                for(var i=0;i < wallets.length;i++){
-                    if(wallets[i].tokens.length > 0){
-                        tokens = wallets[i].tokens
+            if (wallets.length > 0) {
+                for (let i = 0; i < wallets.length; i++) {
+                    if (wallets[i].tokens.length > 0) {
+                        tokens = wallets[i].tokens;
                     } else {
-                        tokens = []
+                        tokens = [];
                     }
                 }
             }
         }
 
-        const {success, data} = await WalletFactory.getBalance(
-            coins,
-            tokens,
-        );
+        const { success, data } = await WalletFactory.getBalance(coins, tokens);
 
         if (success) {
             activeWallet.coins = data.coins;
@@ -308,27 +307,56 @@ async function balance() {
                 symbol: activeWallet.activeAsset.symbol,
                 chain: activeWallet.activeAsset.chain,
             });
-            const {prices} = ReduxStore.getState().PriceReducer;
-            activeWallet.totalBalance = Object.values([
-                ...data.coins,
-                ...data.tokens,
-            ]).reduce((sum, o) => {
+
+            const { prices } = ReduxStore.getState().PriceReducer;
+
+            // Fetch latest prices from localStorage
+            const [bitcoinPrice, ethPrice, dogePrice, ltcPrice, usdcPrice] = await Promise.all([
+                StorageService.getItem('latestBitcoinPrice'),
+                StorageService.getItem('latestEthPrice'),
+                StorageService.getItem('latestDogePrice'),
+                StorageService.getItem('latestLtcPrice'),
+                StorageService.getItem('latestUsdcPrice'),
+            ]).then((prices) => prices.map((price) => parseFloat(price) || 0));
+
+            activeWallet.totalBalance = Object.values([...data.coins, ...data.tokens]).reduce((sum, o) => {
                 const staticPrices = {
                     xusdt: 1,
-                    usdt: 1,
-                    mxg: 0.8413,
+                    mxg: 0.9805,
                     // ... other static prices
                 };
 
-// ... (in your reduce function)
-                const price = staticPrices[o.id.toLowerCase()] || (_.isNil(prices[o.id]) ? 0 : prices[o.id][0]);
-                return  sum + price * o.balance;
+                let price;
+                switch (o.id.toLowerCase()) {
+                    case 'btc':
+                        price = bitcoinPrice;
+                        break;
+                    case 'eths':
+                        price = ethPrice;
+                        break;
+                    case 'doge':
+                        price = dogePrice;
+                        break;
+                    case 'ltc':
+                        price = ltcPrice;
+                        break;
+                    case 'usdc':
+                        price = usdcPrice;
+                        break;
+                    // ... other cases for dynamic prices
+                    default:
+                        price = staticPrices[o.id.toLowerCase()] || (_.isNil(prices[o.id]) ? 0 : prices[o.id][0]);
+                }
+
+                return sum + price * o.balance;
             }, 0.0);
-            StorageService.setItem(WALLET_LIST_KEY, {
+
+            await StorageService.setItem(WALLET_LIST_KEY, {
                 activeWallet,
                 wallets,
             });
         }
+
         return {
             success,
             data: {

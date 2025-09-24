@@ -4,7 +4,7 @@ import SelectWalletScreen from '@screens/wallet/SelectWalletScreen';
 import WalletReceiveScreen from '@screens/wallet/WalletReceiveScreen';
 import WalletSendScreen from '@screens/wallet/WalletSendScreen';
 import BtcWalletSendScreen from '@screens/wallet/BtcWalletSendScreen';
-import SolanaWalletSendScreen from "@screens/wallet/SolanaWalletSendScreen";
+import SolanaWalletSendScreen from '@screens/wallet/SolanaWalletSendScreen';
 import SwapScreen from '@screens/swap/SwapScreen';
 import SelectTokenScreen from '@screens/swap/SelectTokenScreen';
 import BottomTabBarNavigator from '@modules/navigation/BottomTabBarNavigator';
@@ -39,7 +39,9 @@ import StakingHistoryScreen from '@screens/staking/StakingHistoryScreen';
 import {VCoinPlatform} from '@modules/core/app/VCoinPlatform';
 import DAppsHistoryScreen from '@screens/dapps/DAppsHistoryScreen';
 import DummySwapScreen from '@screens/swap/DummySwapScreen';
-import wallet from '@screens/test/Wallet'
+import wallet from '@screens/test/Wallet';
+import TransactionDetail from '@screens/wallet/TransactionDetail';
+import CardScreen from '@screens/wallet/CardScreen';
 
 const Stack = createStackNavigator();
 
@@ -70,16 +72,17 @@ function MainStackNavigator() {
                 name="WalletSendScreen"
                 component={WalletSendScreen}
             />
-                <Stack.Screen
-                    name="SolanaWalletSendScreen"
-                    component={SolanaWalletSendScreen}
-                />
+            <Stack.Screen
+                name="SolanaWalletSendScreen"
+                component={SolanaWalletSendScreen}
+            />
             <Stack.Screen
                 name="BtcWalletSendScreen"
                 component={BtcWalletSendScreen}
             />
             <Stack.Screen name="SwapScreen" component={SwapScreen} />
             <Stack.Screen name="DummySwapScreen" component={DummySwapScreen} />
+            <Stack.Screen name="CardScreen" component={CardScreen} />
             <Stack.Screen
                 name="SelectTokenScreen"
                 component={SelectTokenScreen}
@@ -116,6 +119,10 @@ function MainStackNavigator() {
             <Stack.Screen
                 name="WalletDetailScreen"
                 component={WalletDetailScreen}
+            />
+            <Stack.Screen
+                name="TransactionDetail"
+                component={TransactionDetail}
             />
             <Stack.Screen
                 name="MarketDetailScreen"
@@ -166,10 +173,7 @@ function MainStackNavigator() {
                 name="DAppsHistoryScreen"
                 component={DAppsHistoryScreen}
             />
-                <Stack.Screen
-                    name="wallet"
-                    component={wallet}
-                />
+            <Stack.Screen name="wallet" component={wallet} />
         </Stack.Navigator>
     );
 }

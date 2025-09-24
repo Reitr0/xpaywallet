@@ -1,5 +1,6 @@
 {
   "translation": {
+    "transactionTimeAgo": "{{timeAgo}}",
     "legal": "합법적인",
     "please_review_the_terms_of_service": "XPay 지갑 서비스 약관 및 개인정보 보호정책을 검토하세요",
     "privacy_policy": "개인정보 보호정책",
@@ -178,8 +179,8 @@
     "app_lock.autolock": "자동 잠금",
     "app_lock.lockmethod": "잠금 방법",
     "app_lock.immediate": "즉시",
-    "app_lock.away1min": "1분 동안 자리를 비운 경우",
-    "app_lock.away5mins": "5분 동안 자리를 비운 경우",
+    "app_lock.away1minute": "1분 동안 자리를 비운 경우",
+    "app_lock.away5minutes": "5분 동안 자리를 비운 경우",
     "app_lock.away1Hour": "1시간 동안 자리를 비운 경우",
     "app_lock.away5Hours": "5시간 동안 자리를 비운 경우",
     "app_lock.passcode": "비밀번호",

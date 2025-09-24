@@ -8064,15 +8064,6 @@
     "id": "zignaly"
   },
   {
-    "symbol": "USDC",
-    "address": "TEkxiTehnzSmSe2XqrBj4w32RUN966rdz8",
-    "chainId": 999,
-    "decimals": 6,
-    "name": "USD Coin",
-    "logoURI": "https://static.tronscan.org/production/upload/logo/TEkxiTehnzSmSe2XqrBj4w32RUN966rdz81.png",
-    "id": "usd-coin-pulsechain"
-  },
-  {
     "symbol": "SUN",
     "address": "TSSMHYeV2uE9qYH95DqyoCuNCzEL1NvU3S",
     "chainId": 999,

@@ -19,8 +19,15 @@ import {
     eths,
     doges,
     ltcs,
+    usdcs,
+    slx,
+    amzn,
+    goog,
+    tsla,
+    aapl,
+    cnyusd
 } from '@modules/core/constant/constant';
-import {applicationProperties} from '@src/application.properties';
+import { applicationProperties } from '@src/application.properties';
 
 export const WALLET_TYPE = {
     MANY: 1,
@@ -35,15 +42,25 @@ export const DEFAULT_WALLET = {
     logoURI: applicationProperties.logoURI.app,
     coins: [
         eth,
+        tron,
+        bsc,
+        polygon,
         solana,
+        slx,
         mxgs,
         xusdts,
-        usdts,
         btcs,
         eths,
         doges,
         ltcs,
+        usdcs,
+        amzn,
+        goog,
+        tsla,
+        aapl,
+        cnyusd
     ],
-    tokens: [],
+    tokens: [
+    ],
 };
 export const WALLET_LIST = [DEFAULT_WALLET];

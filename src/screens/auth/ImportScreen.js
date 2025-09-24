@@ -179,12 +179,14 @@ export default function ImportScreen({navigation, route}) {
                             dispatch(
                                 WalletAction.insert({
                                     mnemonic: mnemonic,
-                                    ...DEFAULT_WALLET,
+                                    name: name, // Save the name here
+                                    ...Object.fromEntries(
+                                        Object.entries(DEFAULT_WALLET).filter(([key]) => key !== 'name')),
                                 }),
                             ).then(async ({data}) => {
                                 dispatch(UserAction.signIn()).then(() => {
                                     dispatch(
-                                      FeeAction.getFee(),
+                                        FeeAction.getFee(),
                                     );
                                     CommonLoading.hide();
                                 });

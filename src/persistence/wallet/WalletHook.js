@@ -48,8 +48,8 @@ export function useWalletList() {
         const orderWalletByTotal = _.map(
             [...(activeWallet.coins || []), ...(activeWallet.tokens || [])],
             (item) => {
-                const price = item.name.toLowerCase().includes("usdt")
-                    ? 1 :item.id.toLowerCase().includes("mxg") ? 0.88
+                const price = item.id.toLowerCase().includes("xusdt")
+                    ? 1 :item.id.toLowerCase().includes("mxg") ? 0.9
                     : getPriceData(item.id, 0);
                 console.log(item.id, item.balance)
                 return {

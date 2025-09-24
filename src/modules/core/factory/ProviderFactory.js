@@ -6,7 +6,7 @@ import {BitcoinProvider} from '@modules/core/provider/bitcoin/BitcoinProvider';
 import {Logs} from '@modules/log/logs';
 import {EthProvider} from '@modules/core/provider/eth/EthProvider';
 import {TronProvider} from '@modules/core/provider/tron/TronProvider';
-import {SolanaProvider} from "@modules/core/provider/solana/SolanaProvider";
+import {SolanaProvider} from '@modules/core/provider/solana/SolanaProvider';
 
 export class ProviderFactory {
     static providers = {
@@ -48,7 +48,6 @@ export class ProviderFactory {
         }
     }
 
-
     static getProvider(chain) {
         if (!this.providers[chain]) {
             this.providers[chain] = this.create({chain});
@@ -66,6 +65,7 @@ export class ProviderFactory {
             BTC: BitcoinProvider,
             ETH: EthProvider,
             TRON: TronProvider,
+            // BSC: BscPro
             SOLANA: SolanaProvider,
         }[chain];
     }
@@ -73,7 +73,7 @@ export class ProviderFactory {
     static create({chain, ...rest}) {
         const providerClass = this.getProviderClass(chain);
         if (providerClass) {
-            return new providerClass({apiEndpoint: null, cluster: null})
+            return new providerClass({apiEndpoint: null, cluster: null});
         }
 
         return null;

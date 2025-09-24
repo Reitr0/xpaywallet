@@ -29,12 +29,27 @@ function ApplicationNavigator() {
         dispatch(AppLockAction.getAppLock());
         dispatch(TokenAction.getAllTokens());
     }, []);
+    //
+    const getActiveRouteName = state => {
+        if (!state) return null;
+        const route = state.routes[state.index];
+        if (route.state) {
+            // handle nested navigator (rekursif)
+            return getActiveRouteName(route.state);
+        }
+        return route.name;
+    };
     return (
         <NavigationContainer
             theme={{
                 colors: {
                     background: theme.background,
                 },
+            }}
+            //
+            onStateChange={state => {
+                const currentScreen = getActiveRouteName(state);
+                console.log('📍 Current Screen:', currentScreen);
             }}>
             <StatusBar
                 hidden={false}

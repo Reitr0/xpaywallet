@@ -58,10 +58,10 @@ class CommonLoading extends Component {
             alignItems: "center",
           }}>
           <Lottie
-            source={require("@assets/json/loading.json")}
+            source={require("@assets/json/loading1.json")}
             autoPlay
             loop
-            style={{ width: 32, height: 32 }}
+            style={{ width: 36, height: 36 }}
           />
         </View>
       );

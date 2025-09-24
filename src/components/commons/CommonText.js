@@ -13,6 +13,8 @@ function CommonText({style, ...rest}) {
 }
 
 const styles = StyleSheet.create({
-    font: {},
+    font: {
+        fontFamily: 'Sora-Regular'
+    },
 });
 export default CommonText;

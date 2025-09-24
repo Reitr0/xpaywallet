@@ -2,7 +2,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text } from 'react-native';
 
-const fetchbtc = () => {
+const Fetchbtc = () => {
     const [data, setData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -59,4 +59,4 @@ const fetchbtc = () => {
     );
 };
 
-export default fetchbtc;
+export default Fetchbtc;

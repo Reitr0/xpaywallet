@@ -8,31 +8,58 @@ import CommonTouchableOpacity from '@components/commons/CommonTouchableOpacity';
 import Icon, {Icons} from '@components/icons/Icons';
 import ActionSheet from 'react-native-actions-sheet';
 import {AppLockAction} from '@persistence/applock/AppLockAction';
+import {StorageService} from "@modules/core/storage/StorageService";
 
 export default function SecurityScreen({navigation, route}) {
-    const {t} = useTranslation();
-    const {theme} = useSelector(state => state.ThemeReducer);
+    const { t } = useTranslation();
+    const { theme } = useSelector(state => state.ThemeReducer);
     const dispatch = useDispatch();
     const actionSheetRef = useRef();
     const actionSheetLockMethodRef = useRef();
-    const {appLock} = useSelector(state => state.AppLockReducer);
+    const { appLock } = useSelector(state => state.AppLockReducer);
     const [isEnabled, setIsEnabled] = useState(appLock.appLock);
+    useEffect(() => {
+        (async () => {
+            // Load appLock settings on component mount
+            const storedAppLock = await StorageService.getItem('appLock');
+            if (storedAppLock) {
+                dispatch(AppLockAction.setAppLock(JSON.parse(storedAppLock)));
+            }
+            const storedBiometryLock = await StorageService.getItem('biometryLock');
+            if (storedBiometryLock !== null) {
+                dispatch(AppLockAction.setAppLock({
+                    ...appLock,
+                    biometryLock: JSON.parse(storedBiometryLock)
+                }));
+            }
+        })();
+    }, []); // Empty dependency array ensures this runs once on mount
+
+    useEffect(() => {
+        // Save appLock settings whenever it changes
+        StorageService.setItem('appLock', JSON.stringify(appLock));
+        StorageService.setItem('biometryLock', JSON.stringify(appLock.biometryLock));
+    }, [appLock]); // This effect now runs whenever 'appLock' changes
+
     const toggleSwitch = async () => {
-        setIsEnabled(previousState => !previousState);
-        const lock = !appLock.appLock;
+        const newLockValue = !appLock.appLock; // Get the new desired lock value
+
+        setIsEnabled(newLockValue); // Update the isEnabled state
+
         const newLock = {
-            appLock: lock,
+            appLock: newLockValue, // Use the newLockValue here
             autoLock: appLock.autoLock,
             biometryLock: appLock.biometryLock,
             appLockText: appLock.appLockText,
         };
-        if (!lock) {
+        if (!newLockValue) { // Use newLockValue here as well
             newLock.autoLock = 0;
             newLock.biometryLock = false;
             newLock.appLockText = 'app_lock.immediate';
         }
         dispatch(AppLockAction.setAppLock(newLock));
     };
+
     const appLockText = {
         'app_lock.immediate': t('app_lock.immediate'),
         'app_lock.away1minute': t('app_lock.away1minute'),
@@ -40,9 +67,12 @@ export default function SecurityScreen({navigation, route}) {
         'app_lock.away1Hour': t('app_lock.away1Hour'),
         'app_lock.away5Hours': t('app_lock.away5Hours'),
     };
+
+
     useEffect(() => {
-        (async () => {})();
-    }, []);
+        // Save appLock settings whenever they change
+        dispatch(AppLockAction.setAppLock(appLock));
+    }, [appLock]);
 
     return (
         <View style={[styles.container,{backgroundColor: theme.background4}]}>

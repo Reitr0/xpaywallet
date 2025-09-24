@@ -104,9 +104,10 @@ export default function AccountScreen({navigation}) {
                     }}>
                     <Icon
                         type={Icons.Feather}
-                        size={18}
+                        size={24}
                         name={'plus'}
                         color={theme.text}
+                        strokeWidth={3}
                     />
                 </CommonTouchableOpacity>
             </View>

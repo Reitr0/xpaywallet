@@ -7,6 +7,8 @@ import {
     removeWalletSuccess,
     setActiveWalletSuccess,
     updateWalletSuccess,
+    insertSuccess,
+    updateSuccess,
 } from '@persistence/wallet/WalletReducer';
 
 export const WalletAction = {

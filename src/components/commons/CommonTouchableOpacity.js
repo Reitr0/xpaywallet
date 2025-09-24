@@ -4,7 +4,7 @@ import React from 'react';
 function CommonTouchableOpacity({...rest}) {
   const {children} = {...rest};
   return (
-    <TouchableOpacity activeOpacity={0.5} {...rest}>
+    <TouchableOpacity activeOpacity={1} {...rest}>
       {children}
     </TouchableOpacity>
   );

@@ -61,7 +61,7 @@ export default function TokenScreen({navigation, route}) {
             priority: FastImage.priority.normal,
             cache: FastImage.cacheControl.immutable,
         };
-        if (item.thumb === '' || item.thumb === null) {
+        if (item.logoURI === '' || item.logoURI === null) {//*
             img = require('@assets/images/token/no-photo.png');
         }
         const asset = _.find(activeWallet.tokens, function (o) {

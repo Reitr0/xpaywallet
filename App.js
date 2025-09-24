@@ -15,6 +15,7 @@ import {LogBox} from 'react-native';
 import {VCoinPlatform} from '@modules/core/app/VCoinPlatform';
 import {StorageService} from '@modules/core/storage/StorageService';
 import i18n from 'i18next';
+import {ThemeAction} from "@persistence/theme/ThemeAction";
 
 LogBox.ignoreAllLogs(true);
 enableScreens();
