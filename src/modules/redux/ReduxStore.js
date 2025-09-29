@@ -7,6 +7,7 @@ import AppLockReducer from '@persistence/applock/AppLockReducer';
 import WalletReducer from '@persistence/wallet/WalletReducer';
 import MarketReducer from '@persistence/market/MarketReducer';
 import WalletConnectReducer from '@persistence/walletconnect/WalletConnectReducer';
+import WalletConnectConnectionReducer from '@persistence/walletconnect/WalletConnectConnectionReducer';
 import FeeReducer from '@persistence/fee/FeeReducer';
 import NotifyReducer from '@persistence/notify/NotifyReducer';
 import PriceAlertReducer from '@persistence/pricealert/PriceAlertReducer';
@@ -23,6 +24,7 @@ const ReduxStore = configureStore({
         WalletReducer,
         MarketReducer,
         WalletConnectReducer,
+        WalletConnectConnectionReducer,
         PriceAlertReducer,
         NotifyReducer,
         FeeReducer,

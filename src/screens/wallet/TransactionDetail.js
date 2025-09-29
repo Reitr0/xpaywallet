@@ -135,8 +135,27 @@ function TransactionDetail({ route }) {
                                 <InfoRow label={t('transaction_detail.date')} labelColor={theme.textTable} valueColor={theme.textTable} value={moment(item.createdAt * 1000).format('MMMM Do YYYY, h:mm:ss a')} marquee />,
                                 <StatusRow label={t('transaction_detail.status')} labelColor={theme.textTable} value={t(`transaction_detail.${item.status == -1 ? 'succeeded' : 'failed'}`)} valueColor={item.status == -1 ? theme.success : theme.error} />,
                                 <InfoRow label={t('transaction_detail.to')} labelColor={theme.textTable} valueColor={theme.textTable} value={item.to} marquee={true} />,
-                                <InfoRow label={t('transaction_detail.network')} labelColor={theme.textTable} valueColor={theme.textTable} value={item.chain || 'Solana'} />,
-                                <InfoRow label={t('transaction_detail.network_fee')} labelColor={theme.textTable} valueColor={theme.textTable} value={`-${item.gasFee / 1000000000} ${item.networkFeeSymbol || 'SOL'}`} />
+                                <InfoRow
+                                    label={t('transaction_detail.network')}
+                                    labelColor={theme.textTable}
+                                    valueColor={theme.textTable}
+                                    value={(() => {
+                                        const chain = (activeWallet.activeAsset.chain || '').toUpperCase();
+                                        return chain === 'SOLANA' ? 'Solana' : chain === 'BSC' ? 'BSC' : chain || 'Unknown';
+                                    })()}
+                                />,
+                                <InfoRow
+                                    label={t('transaction_detail.network_fee')}
+                                    labelColor={theme.textTable}
+                                    valueColor={theme.textTable}
+                                    value={(() => {
+                                        const chain = (activeWallet.activeAsset.chain || '').toUpperCase();
+                                        const gasFee = Number(item.gasFee) || 0;
+                                        const fee = chain === 'BSC' ? gasFee : gasFee / 1000000000;
+                                        const symbol = chain === 'BSC' ? 'BNB' : 'SOL';
+                                        return `-${fee.toFixed(8)} ${symbol}`;
+                                    })()}
+                                />
                             ].map((row, index) => (
                                 <View
                                     key={index}

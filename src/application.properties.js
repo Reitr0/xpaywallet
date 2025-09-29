@@ -104,6 +104,13 @@ export const applicationProperties = {
             logo: 'https://i.ibb.co/7WkxZZ2/Untitled-3.png',
             url: 'https://iframe.dacast.com/live/c7f2a8b1-d364-37fb-2fa2-cea24a3aff2b/d30253d3-e6d1-7aad-b9e3-9283186bd2dc',
         },
+        {
+            id: 'soldapp',
+            name: 'Soldapp',
+            desc: 'Dapp For Meta X Project',
+            logo: 'https://i.ibb.co/7WkxZZ2/Untitled-3.png',
+            url: 'https://solxdapp.io/signup?ref=1',
+        },
         // {
         //     id: 'uniswap',
         //     name: 'Uniswap Exchange',

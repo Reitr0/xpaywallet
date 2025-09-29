@@ -15,6 +15,8 @@ import CommonTouchableOpacity from '@components/commons/CommonTouchableOpacity';
 import {useTranslation} from 'react-i18next';
 import validator from 'validator';
 import {WalletConnectAction} from '@persistence/walletconnect/WalletConnectAction';
+import {WalletConnectConnectionAction} from '@persistence/walletconnect/WalletConnectConnectionAction';
+import WalletConnectionStatus from '@components/WalletConnectionStatus';
 import Icon, {Icons} from '@components/icons/Icons';
 
 export default function DAppsScreen({navigation, route}) {
@@ -27,6 +29,7 @@ export default function DAppsScreen({navigation, route}) {
     useEffect(() => {
         (async () => {
             dispatch(WalletConnectAction.get());
+            dispatch(WalletConnectConnectionAction.getConnections());
         })();
     }, []);
     const onSearch = value => {
@@ -118,6 +121,16 @@ export default function DAppsScreen({navigation, route}) {
                         styles.content,
                         {backgroundColor: theme.background},
                     ]}>
+                    {/* Wallet Connection Status */}
+                    <WalletConnectionStatus
+                        onDisconnect={() => {
+                            // Handle disconnect if needed
+                        }}
+                        onSwitchWallet={() => {
+                            // Handle switch wallet if needed
+                        }}
+                    />
+                    
                     <CommonFlatList
                         data={applicationProperties.dapps}
                         renderItem={renderItem}
