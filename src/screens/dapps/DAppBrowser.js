@@ -100,13 +100,20 @@ export default function DAppBrowser() {
                     console.error(`Error handling ${method}:`, err);
                 }
 
-                // Inject response back into WebView
+                // Inject response back into WebView (dispatch a MessageEvent so the injected listener receives it)
                 const responseScript = `
-                    window.postMessage({
-                        id: '${id}',
-                        result: ${error ? 'null' : JSON.stringify(result)},
-                        error: ${error ? JSON.stringify(error) : 'null'}
-                    });
+                    (function(){
+                        var payload = { id: '${id}', result: ${error ? 'null' : JSON.stringify(result)}, error: ${error ? JSON.stringify(error) : 'null'} };
+                        try {
+                            var evt = new MessageEvent('message', { data: payload });
+                            window.dispatchEvent(evt);
+                        } catch (e) {}
+                        try {
+                            // Legacy listeners: some DApps expect window.postMessage(string)
+                            window.postMessage(JSON.stringify(payload), '*');
+                        } catch (e2) {}
+                    })();
+                    true;
                 `;
                 
                 if (webViewRef.current) {

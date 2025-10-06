@@ -109,7 +109,7 @@ export const applicationProperties = {
             name: 'Soldapp',
             desc: 'Dapp For Meta X Project',
             logo: 'https://i.ibb.co/7WkxZZ2/Untitled-3.png',
-            url: 'https://solxdapp.io/signup?ref=1',
+            url: 'https://solxdapp.io/signup',
         },
         // {
         //     id: 'uniswap',
