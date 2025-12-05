@@ -1,0 +1,72 @@
+---
+description: XPay Wallet Project Rules - DApp Browser and Wallet Integration
+globs: ["src/**/*.js", "src/**/*.ts", "src/**/*.jsx", "src/**/*.tsx"]
+alwaysApply: true
+---
+
+# XPay Wallet Project Rules
+
+## Import Rules
+- Use absolute imports for cross-module dependencies (@modules/, @screens/, @persistence/)
+- Use relative imports for local components within the same directory structure
+- Use @modules/ for core modules
+- Use @components/ for UI components
+- Use @screens/ for screen components
+- Use @persistence/ for data persistence
+- For components in the same directory (e.g., commons), use relative imports like './commons/ComponentName'
+
+## Code Principles
+- Follow SOLID principles (Single Responsibility, Open/Closed, Liskov Substitution, Interface Segregation, Dependency Inversion)
+- Apply DRY (Don't Repeat Yourself) principle
+- Use consistent naming conventions (camelCase for variables, PascalCase for components)
+- Implement proper error handling with try-catch blocks
+
+## DApp Browser Rules
+- All smart contract calls must go through SmartContractCallModal
+- Always validate wallet connection before processing transactions
+- Implement proper balance checking before transaction approval
+- Show network fees and total cost clearly
+- Handle insufficient balance scenarios with "Top up" functionality
+
+## Wallet Integration Rules
+- Use WalletFactory for all wallet operations
+- Use WalletConnectionProvider for DApp connections
+- Implement proper chain switching capabilities
+- Validate transaction parameters before signing
+- Show transaction details in user-friendly format
+
+## WalletConnect Integration Rules
+- Always handle session proposals with proper error handling and timeouts
+- Implement proper cleanup for event listeners in useEffect
+- Use WalletConnectSessionManager for session management
+- Show clear permission details in session approval modals
+- Handle session rejection gracefully with proper cleanup
+- Implement timeout protection for session operations (15s for approval, 10s for rejection)
+
+## UI/UX Rules
+- Match Trust Wallet's interface design exactly
+- Use theme system for consistent styling
+- Implement loading states for all async operations
+- Show clear error messages and success feedback
+- Use proper modal presentations for transaction approvals
+
+## Security Rules
+- Never expose private keys in logs or UI
+- Validate all user inputs
+- Implement proper transaction confirmation flows
+- Use secure random number generation for request IDs
+- Sanitize all data before processing
+
+## Performance Rules
+- Implement proper caching for wallet data
+- Use efficient state management with Redux
+- Minimize re-renders with proper memoization
+- Implement proper cleanup for WebView components
+- Use pagination for large data sets
+
+## Testing Rules
+- Write unit tests for all utility functions
+- Test wallet connection flows
+- Test transaction approval scenarios
+- Test error handling paths
+- Test UI component interactions

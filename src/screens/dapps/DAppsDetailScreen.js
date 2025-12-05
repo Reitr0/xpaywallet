@@ -4,6 +4,7 @@ import {
     Platform,
     SafeAreaView,
     StyleSheet,
+    TouchableOpacity,
     View,
 } from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
@@ -13,6 +14,8 @@ import WebView from 'react-native-webview';
 import CommonButton from '@components/commons/CommonButton';
 import CommonLoading from '@components/commons/CommonLoading';
 import CommonBackButton from '@components/commons/CommonBackButton';
+import Icon, { Icons } from '@components/icons/Icons';
+import SmartContractCallModal from '@components/SmartContractCallModal';
 import {
     createWeb3Wallet,
     onConnect,
@@ -31,6 +34,9 @@ import {CHAIN_ID_TYPE_MAP} from '@modules/core/constant/constant';
 import {WalletConnectAction} from '@persistence/walletconnect/WalletConnectAction';
 import CommonAlert from '@components/commons/CommonAlert';
 import {useTranslation} from 'react-i18next';
+import { ethers } from 'ethers';
+import { metaMaskWeb3Provider } from '@modules/web3/MetaMaskProvider';
+import Web3RequestModal from '@components/Web3RequestModal';
 
 export default function DAppsDetailScreen({navigation, route}) {
     const {item} = route.params;
@@ -43,19 +49,90 @@ export default function DAppsDetailScreen({navigation, route}) {
     const [requestSession, setRequestSession] = useState();
     const [requiredNamespaces, setRequiredNamespaces] = useState({});
     const [activeChain, setActiveChain] = useState('');
+    const [showSmartContractModal, setShowSmartContractModal] = useState(false);
+    const [smartContractTransaction, setSmartContractTransaction] = useState(null);
+    const [showWeb3RequestModal, setShowWeb3RequestModal] = useState(false);
+    const [web3RequestData, setWeb3RequestData] = useState(null);
+    const [web3RequestCallbacks, setWeb3RequestCallbacks] = useState(null);
+    const [showNetworkModal, setShowNetworkModal] = useState(false);
     const {t} = useTranslation();
     const {walletConnectSites} = useSelector(
         state => state.WalletConnectReducer,
     );
+    const {wallets} = useSelector(state => state.WalletReducer);
     const webRef = useRef(null);
     const [uri, setUri] = useState('');
     const dispatch = useDispatch();
     useEffect(() => {
         (async () => {
             await createWeb3Wallet();
+            
+            // Set up direct event listeners for WalletConnect
+            // Note: We handle these directly instead of using WalletConnectSessionManager
+            // to avoid conflicts and ensure proper popup display
             web3wallet.on('session_proposal', onSessionProposal);
             web3wallet.on('session_request', onSessionRequest);
             web3wallet.on('session_delete', onSessionDelete);
+            
+            // Setup Web3 provider request callback
+            metaMaskWeb3Provider.setRequestCallback(async (requestInfo) => {
+                console.log('🔌 Web3 request callback triggered:', requestInfo.requestData.method);
+                console.log('🔌 DApp info:', { name: item.name, url: item.url });
+                
+                // Handle different types of requests
+                const method = requestInfo.requestData.method;
+                
+                if (method === 'eth_accounts') {
+                    // Handle eth_accounts automatically without showing modal
+                    console.log('🔌 Handling eth_accounts automatically');
+                    try {
+                        const accounts = await metaMaskWeb3Provider.getAccounts();
+                        console.log('🔌 Auto-approved eth_accounts:', accounts);
+                        return accounts; // Return directly instead of using callback
+                    } catch (error) {
+                        console.error('🔌 Error in eth_accounts:', error);
+                        throw error; // Throw directly instead of using callback
+                    }
+                } else if (method === 'eth_requestAccounts') {
+                    // Show confirmation modal for eth_requestAccounts (connection request)
+                    console.log('🔌 Showing confirmation modal for eth_requestAccounts');
+                    setWeb3RequestData(requestInfo.requestData);
+                    setWeb3RequestCallbacks({
+                        onApprove: async (data) => {
+                            const result = await requestInfo.onApprove(data);
+                            return result;
+                        },
+                        onReject: requestInfo.onReject
+                    });
+                    setShowWeb3RequestModal(true);
+                } else if (method === 'wallet_showAlert' || method === 'wallet_showConfirm') {
+                    // Show alert/confirm in Web3RequestModal
+                    console.log('🔌 Setting up alert/confirm modal for method:', method);
+                    console.log('🔌 Request data:', requestInfo.requestData);
+                    setWeb3RequestData(requestInfo.requestData);
+                    setWeb3RequestCallbacks({
+                        onApprove: requestInfo.onApprove,
+                        onReject: requestInfo.onReject
+                    });
+                    console.log('🔌 Setting Web3RequestModal visibility to TRUE');
+                    setShowWeb3RequestModal(true);
+                    console.log('🔌 Web3RequestModal visibility should now be TRUE');
+                } else if (method === 'eth_sendTransaction') {
+                    // Show SmartContractCallModal for transactions
+                    setSmartContractTransaction(requestInfo.requestData);
+                    setShowSmartContractModal(true);
+                } else {
+                    // Show Web3RequestModal for other requests
+                    setWeb3RequestData(requestInfo.requestData);
+                    setWeb3RequestCallbacks({
+                        onApprove: requestInfo.onApprove,
+                        onReject: requestInfo.onReject
+                    });
+                    setShowWeb3RequestModal(true);
+                }
+                
+                console.log('🔌 Modal should be showing now');
+            });
         })();
         CommonLoading.hide();
     }, []);
@@ -152,10 +229,101 @@ export default function DAppsDetailScreen({navigation, route}) {
     const onBrowserMessage = async event => {
         try {
             CommonLoading.show();
-            //console.log("*".repeat(10));
-            //console.log("Got message from the browser:", event.nativeEvent.data);
-            //console.log("*".repeat(10));
-            //console.log(event.nativeEvent.data);
+            
+            // Check if this is a Web3 provider request
+            const data = JSON.parse(event.nativeEvent.data);
+            if (data.type === 'eth_request') {
+                console.log('🔌 Handling Web3 request with MetaMask provider:', data);
+                
+                try {
+                    const response = await metaMaskWeb3Provider.handleWeb3Request(data);
+                    
+                    // Only send response if it's not a user interaction request
+                    // User interaction requests will be handled by the modal callbacks
+                    if (response !== undefined) {
+                        // Prepare response data
+                        const responseData = {
+                            type: 'eth_response',
+                            method: data.method, // Include method name for proper handling
+                            id: data.id,
+                            result: response,
+                            messageId: data.messageId
+                        };
+                        
+                        // Send response back to WebView using window.postMessage
+                        webRef.current?.postMessage(JSON.stringify(responseData));
+                        // Also try window.postMessage for compatibility
+                        webRef.current?.injectJavaScript(`window.postMessage('${JSON.stringify(responseData)}', '*');`);
+                        console.log('🔌 MetaMask provider response sent:', responseData);
+                    }
+                    
+                } catch (error) {
+                    if (error.message === 'USER_INTERACTION_REQUIRED') {
+                        console.log('🔌 User interaction required for method:', data.method);
+                        // Handle user interaction methods
+                        if (data.method === 'eth_requestAccounts') {
+                            console.log('🔌 Showing confirmation modal for eth_requestAccounts');
+                            setWeb3RequestData(data);
+                            setWeb3RequestCallbacks({
+                                onApprove: async (requestData) => {
+                                    const accounts = await metaMaskWeb3Provider.getAccounts();
+                                    console.log('🔌 User approved eth_requestAccounts:', accounts);
+                                    return accounts; // Return the accounts so handleWeb3RequestApprove can use them
+                                },
+                                onReject: (requestData) => {
+                                    console.log('🔌 User rejected eth_requestAccounts');
+                                    metaMaskWeb3Provider.sendResponse(webRef, requestData.id, null, 'User rejected the request', requestData.method);
+                                }
+                            });
+                            setShowWeb3RequestModal(true);
+                        } else {
+                            // Handle other user interaction methods
+                            console.log('🔌 Showing modal for method:', data.method);
+                            setWeb3RequestData(data);
+                            setWeb3RequestCallbacks({
+                                onApprove: async (requestData) => {
+                                    // For transaction methods, we need to handle them differently
+                                    if (requestData.method === 'eth_sendTransaction') {
+                                        console.log('🔌 User approved transaction:', requestData.method);
+                                        // TODO: Implement transaction signing and get tx hash
+                                        const txHash = "0xabc123..."; // Placeholder - implement actual transaction signing
+                                        return txHash;
+                                    } else {
+                                        const accounts = await metaMaskWeb3Provider.getAccounts();
+                                        console.log('🔌 User approved request:', requestData.method);
+                                        return accounts;
+                                    }
+                                },
+                                onReject: (requestData) => {
+                                    console.log('🔌 User rejected request:', requestData.method);
+                                    metaMaskWeb3Provider.sendResponse(webRef, requestData.id, null, 'User rejected the request', requestData.method);
+                                }
+                            });
+                            setShowWeb3RequestModal(true);
+                        }
+                        // Don't hide loading here as we're showing a modal
+                        return;
+                    } else {
+                        // Handle other errors
+                        const responseData = {
+                            type: 'eth_response',
+                            id: data.id,
+                            error: error.message,
+                            messageId: data.messageId,
+                            method: data.method
+                        };
+                        webRef.current?.postMessage(JSON.stringify(responseData));
+                        // Also try window.postMessage for compatibility
+                        webRef.current?.injectJavaScript(`window.postMessage('${JSON.stringify(responseData)}', '*');`);
+                        console.error('🔌 MetaMask provider error:', error);
+                    }
+                }
+                
+                CommonLoading.hide();
+                return;
+            }
+            
+            // Handle WalletConnect QR code detection
             if (loading === false) {
                 setLoading(true);
                 await pair(event.nativeEvent.data);
@@ -171,7 +339,10 @@ export default function DAppsDetailScreen({navigation, route}) {
     async function pair(wcUri) {
         const wcUrl = wcUri.replace('amp;', '');
         setUri(getUri(wcUrl));
-        await onConnect({uri: wcUrl});
+        
+        // Use the deep link handler to properly parse and handle the URI
+        const { deepLinkHandler } = await import('@modules/deeplink/DeepLinkHandler');
+        deepLinkHandler.handleDeepLink(wcUrl);
     }
 
     const onSessionProposal = useCallback(proposal => {
@@ -208,17 +379,188 @@ export default function DAppsDetailScreen({navigation, route}) {
                 setRequestEventData(requestEvent);
                 approvalRequestModal?.current.show();
                 return;
+                
             case EIP155_SIGNING_METHODS.ETH_SEND_TRANSACTION:
             case EIP155_SIGNING_METHODS.ETH_SIGN_TRANSACTION:
-                setRequestSession(requestSessionData);
-                setRequestEventData(requestEvent);
-                approvalRequestModal?.current.show();
+                // Check if this is a smart contract call
+                const transactionData = request.params[0];
+                if (isSmartContractCall(transactionData)) {
+                    // Show SmartContractCallModal for smart contract calls
+                    setSmartContractTransaction({
+                        ...transactionData,
+                        requestEvent,
+                        requestSessionData,
+                        method: request.method
+                    });
+                    setShowSmartContractModal(true);
+                } else {
+                    // Use existing modal for simple transfers
+                    setRequestSession(requestSessionData);
+                    setRequestEventData(requestEvent);
+                    approvalRequestModal?.current.show();
+                }
                 return;
         }
     }, []);
+
+    // Check if transaction is a smart contract call
+    const isSmartContractCall = (transactionData) => {
+        if (!transactionData) return false;
+        
+        // Check if 'to' address is a contract (has data field)
+        if (transactionData.data && transactionData.data !== '0x') {
+            return true;
+        }
+        
+        // Check if value is 0 but has data (contract interaction)
+        const value = transactionData.value || '0';
+        const hasValue = ethers.BigNumber.from(value).gt(0);
+        const hasData = transactionData.data && transactionData.data !== '0x';
+        
+        return !hasValue && hasData;
+    };
     const onSessionDelete = () => {
         setLoading(false);
         dispatch(WalletConnectAction.remove(uri));
+    };
+
+    // Web3 Request Modal handlers
+    const handleWeb3RequestApprove = async (requestData) => {
+        console.log('🔌 handleWeb3RequestApprove called');
+        console.log('🔌 Request data:', requestData);
+        
+        try {
+            // Check if this is a chain switch request created from an alert
+            if (requestData.method === 'wallet_switchEthereumChain' && requestData.type === 'eth_request') {
+                console.log('🔌 Handling chain switch request from alert');
+                
+                // Call the chain switch logic directly instead of going through handleWeb3Request
+                const chainParams = requestData.params[0];
+                console.log('🔌 Chain switch params:', chainParams);
+                
+                try {
+                    // Call the switchChain method directly
+                    const result = await metaMaskWeb3Provider.switchChain(chainParams);
+                    console.log('🔌 Direct chain switch result:', result);
+                    
+                    // Update chain state
+                    const chainId = chainParams.chainId;
+                    const chainName = metaMaskWeb3Provider.getChainNameFromId(chainId);
+                    if (chainName) {
+                        metaMaskWeb3Provider.setCurrentChain(chainName);
+                        setActiveChain(chainName);
+                        console.log('🔌 Updated chain state to:', chainName);
+                        
+                        // Send chain change confirmation to WebView
+                        webRef.current?.postMessage(JSON.stringify({
+                            type: 'chain_change_confirmed',
+                            chainId: chainId,
+                            chainName: chainName,
+                            timestamp: Date.now()
+                        }));
+                        console.log('🔌 Chain change confirmation sent to WebView:', { chainId, chainName });
+                    }
+                    
+                    // Send success response using sendResponse method
+                    metaMaskWeb3Provider.sendResponse(webRef, requestData.id, null, null, requestData.method);
+                    console.log('🔌 Chain switch success response sent');
+                    
+                } catch (switchError) {
+                    console.error('🔌 Chain switch failed:', switchError);
+                    
+                    // Send error response using sendResponse method
+                    metaMaskWeb3Provider.sendResponse(webRef, requestData.id, null, switchError.message || 'Chain switch failed', requestData.method);
+                    console.log('🔌 Chain switch error response sent');
+                }
+                
+                console.log('🔌 Chain switch request processing completed');
+            } else if (web3RequestCallbacks?.onApprove) {
+                // Handle normal requests through the callback
+                console.log('🔌 Handling normal request through callback');
+                console.log('🔌 Request method:', requestData.method);
+                console.log('🔌 Request params:', requestData.params);
+                
+                try {
+                    const result = await web3RequestCallbacks.onApprove(requestData);
+                    console.log('🔌 Normal request processing completed with result:', result);
+                    console.log('🔌 Result type:', typeof result, 'Result value:', result);
+                    
+                    // Send response using sendResponse method
+                    console.log('🔌 Sending response using sendResponse method');
+                    metaMaskWeb3Provider.sendResponse(webRef, requestData.id, result, null, requestData.method);
+                    console.log('🔌 Normal request success response sent');
+                } catch (callbackError) {
+                    console.error('🔌 Error in callback approval:', callbackError);
+                    
+                    // Send error response using sendResponse method
+                    metaMaskWeb3Provider.sendResponse(webRef, requestData.id, null, callbackError.message || 'Request failed', requestData.method);
+                    console.log('🔌 Normal request error response sent');
+                }
+            } else {
+                console.warn('🔌 No callback available for request:', requestData.method);
+                // Send error response for unsupported requests
+                metaMaskWeb3Provider.sendResponse(webRef, requestData.id, null, 'No callback available for this request', requestData.method);
+            }
+            
+        } catch (error) {
+            console.error('Error approving Web3 request:', error);
+            console.error('Error details:', error.message, error.stack);
+            
+            // Send error response back to WebView
+            metaMaskWeb3Provider.sendResponse(webRef, requestData.id, null, error.message || 'Request failed', requestData.method);
+            console.log('🔌 General error response sent');
+        } finally {
+            console.log('🔌 Closing Web3RequestModal and clearing state');
+            setShowWeb3RequestModal(false);
+            setWeb3RequestData(null);
+            setWeb3RequestCallbacks(null);
+            CommonLoading.hide(); // Hide the loading indicator
+        }
+    };
+
+    const handleWeb3RequestReject = (requestData) => {
+        console.log('🔌 handleWeb3RequestReject called');
+        try {
+            // Send rejection response back to WebView using sendResponse method
+            metaMaskWeb3Provider.sendResponse(webRef, requestData.id, null, 'User rejected the request', requestData.method);
+            console.log('🔌 Rejection response sent');
+            
+            // Also call the original reject callback if available
+            if (web3RequestCallbacks?.onReject) {
+                web3RequestCallbacks.onReject(requestData);
+            }
+        } catch (error) {
+            console.error('Error rejecting Web3 request:', error);
+        } finally {
+            setShowWeb3RequestModal(false);
+            setWeb3RequestData(null);
+            setWeb3RequestCallbacks(null);
+            CommonLoading.hide(); // Hide the loading indicator
+        }
+    };
+
+    const handleWeb3RequestClose = () => {
+        console.log('🔌 handleWeb3RequestClose called');
+        console.log('🔌 Current web3RequestData:', web3RequestData);
+        console.log('🔌 Current web3RequestCallbacks:', web3RequestCallbacks);
+        
+        // Send rejection response back to WebView when modal is closed
+        if (web3RequestData) {
+            metaMaskWeb3Provider.sendResponse(webRef, web3RequestData.id, null, 'User dismissed the request', web3RequestData.method);
+            console.log('🔌 Dismissal response sent');
+            
+            // Auto-reject when user closes modal
+            if (web3RequestCallbacks?.onReject) {
+                console.log('🔌 Auto-rejecting request due to modal close');
+                web3RequestCallbacks.onReject(web3RequestData);
+            }
+        }
+        
+        console.log('🔌 Closing Web3RequestModal');
+        setShowWeb3RequestModal(false);
+        setWeb3RequestData(null);
+        setWeb3RequestCallbacks(null);
+        CommonLoading.hide(); // Hide the loading indicator
     };
     async function handleAccept() {
         try{
@@ -251,7 +593,7 @@ export default function DAppsDetailScreen({navigation, route}) {
                     const namespaces = {};
                     setActiveChain(CHAIN_ID_TYPE_MAP[chainId]);
                     Object.keys(currentRequiredNamespaces).forEach(key => {
-                        const accounts: string[] = [];
+                        const accounts = [];
                         currentRequiredNamespaces[key].chains.map(chain => {
                             [wallet.data.walletAddress].map(acc =>
                                 accounts.push(`${chain}:${acc}`),
@@ -377,12 +719,156 @@ export default function DAppsDetailScreen({navigation, route}) {
             CommonLoading.hide();
         }
     }
+
+    // Smart Contract Call Modal Handlers
+    const handleSmartContractApprove = async (transactionData) => {
+        if (!smartContractTransaction) return;
+        
+        CommonLoading.show();
+        try {
+            const wallet = await WalletFactory.getWallet(activeChain);
+            const response = await approveEIP155Request(
+                smartContractTransaction.requestEvent,
+                wallet.signer,
+            );
+            await web3wallet.respondSessionRequest({
+                topic: smartContractTransaction.requestEvent.topic,
+                response,
+            });
+            
+            setShowSmartContractModal(false);
+            setSmartContractTransaction(null);
+            
+            CommonAlert.show({
+                title: t('alert.success'),
+                message: 'Transaction approved and sent!',
+                type: 'success',
+            });
+        } catch (error) {
+            console.error('Error approving smart contract transaction:', error);
+            CommonAlert.show({
+                title: t('alert.error'),
+                message: `Failed to approve transaction: ${error.message}`,
+                type: 'error',
+            });
+        } finally {
+            CommonLoading.hide();
+        }
+    };
+
+    const handleSmartContractReject = async () => {
+        if (!smartContractTransaction) return;
+        
+        CommonLoading.show();
+        try {
+            const wallet = await WalletFactory.getWallet(activeChain);
+            const response = rejectEIP155Request(
+                smartContractTransaction.requestEvent,
+                wallet.signer,
+            );
+            await web3wallet.respondSessionRequest({
+                topic: smartContractTransaction.requestEvent.topic,
+                response,
+            });
+            
+            setShowSmartContractModal(false);
+            setSmartContractTransaction(null);
+            
+            CommonAlert.show({
+                title: t('alert.info'),
+                message: 'Transaction rejected',
+                type: 'info',
+            });
+        } catch (error) {
+            console.error('Error rejecting smart contract transaction:', error);
+            CommonAlert.show({
+                title: t('alert.error'),
+                message: `Failed to reject transaction: ${error.message}`,
+                type: 'error',
+            });
+        } finally {
+            CommonLoading.hide();
+        }
+    };
     const getUri = url => {
         const match = url.match(/wc:([^@]+)@2/);
         if (match && match[1]) {
             return match[1];
         }
         return '';
+    };
+
+    // Network helper functions
+    const getNetworkColor = (chain) => {
+        const colors = {
+            'ETH': '#627EEA',
+            'BSC': '#F3BA2F', 
+            'POLYGON': '#8247E5',
+            'ARB': '#28A0F0',
+            'BTTC': '#53CBC9',
+            'TRON': '#FF060A'
+        };
+        return colors[chain] || '#666666';
+    };
+
+    const getNetworkIndicatorColor = (chain) => {
+        const colors = {
+            'ETH': '#FFFFFF',
+            'BSC': '#000000',
+            'POLYGON': '#FFFFFF', 
+            'ARB': '#FFFFFF',
+            'BTTC': '#FFFFFF',
+            'TRON': '#FFFFFF'
+        };
+        return colors[chain] || '#FFFFFF';
+    };
+
+    const getNetworkDisplayName = (chain) => {
+        const names = {
+            'ETH': 'Ethereum',
+            'BSC': 'BSC',
+            'POLYGON': 'Polygon',
+            'ARB': 'Arbitrum',
+            'BTTC': 'BTTC',
+            'TRON': 'TRON'
+        };
+        return names[chain] || chain;
+    };
+
+    const availableNetworks = ['ETH', 'BSC', 'POLYGON', 'ARB', 'BTTC'];
+
+    const handleNetworkSwitch = async (newChain) => {
+        try {
+            console.log('🔌 Switching network from', activeChain, 'to', newChain);
+            
+            // Update the MetaMaskWeb3Provider's current chain
+            metaMaskWeb3Provider.setCurrentChain(newChain);
+            setActiveChain(newChain);
+            
+            // Send chain change notification to WebView
+            webRef.current?.postMessage(JSON.stringify({
+                type: 'chain_changed',
+                chainId: metaMaskWeb3Provider.getChainIdFromName(newChain),
+                chainName: newChain,
+                timestamp: Date.now()
+            }));
+            
+            console.log('🔌 Network switched successfully to:', newChain);
+            setShowNetworkModal(false);
+            
+            CommonAlert.show({
+                title: 'Network Switched',
+                message: `Switched to ${getNetworkDisplayName(newChain)} network`,
+                type: 'success',
+            });
+        } catch (error) {
+            console.error('🔌 Error switching network:', error);
+            CommonAlert.show({
+                title: 'Error',
+                message: `Failed to switch network: ${error.message}`,
+                type: 'error',
+            });
+        }
     };
 
     return (
@@ -402,6 +888,27 @@ export default function DAppsDetailScreen({navigation, route}) {
                         {item.name}
                     </CommonText>
                 </View>
+                <View style={styles.rightHeader}>
+                    {/* Network Selection Button */}
+                    <TouchableOpacity
+                        style={[styles.networkButton, { backgroundColor: getNetworkColor(activeChain) }]}
+                        onPress={() => setShowNetworkModal(true)}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.networkButtonContent}>
+                            <View style={[styles.networkIndicator, { backgroundColor: getNetworkIndicatorColor(activeChain) }]} />
+                            <CommonText style={styles.networkButtonText}>
+                                {getNetworkDisplayName(activeChain)}
+                            </CommonText>
+                            <Icon 
+                                type={Icons.MaterialIcons} 
+                                name="keyboard-arrow-down" 
+                                size={16} 
+                                color="white" 
+                            />
+                        </View>
+                    </TouchableOpacity>
+                </View>
             </View>
             <View style={styles.content}>
                 <WebView
@@ -415,11 +922,13 @@ export default function DAppsDetailScreen({navigation, route}) {
                     renderLoading={() => (
                         <ActivityIndicator size="large" color="#0000ff" />
                     )}
-                    injectedJavaScript={
-                        Platform.OS === 'android'
-                            ? injectedJavaScriptAndroid
-                            : injectedJavaScriptIos
-                    }
+                    injectedJavaScript={`
+                        ${metaMaskWeb3Provider.generateWeb3ProviderScript()}
+                        ${Platform.OS === 'android' ? injectedJavaScriptAndroid : injectedJavaScriptIos}
+                    `}
+                    injectedJavaScriptBeforeContentLoaded={`
+                        ${metaMaskWeb3Provider.generateWeb3ProviderScript()}
+                    `}
                 />
             </View>
             <ActionSheet
@@ -437,20 +946,21 @@ export default function DAppsDetailScreen({navigation, route}) {
                             style={{
                                 fontWeight: 'bold',
                                 fontSize: 17,
+                                color: theme.text,
                             }}>
                             {pairingProposal?.params?.proposer?.metadata?.name}
                         </CommonText>
-                        <CommonText>would like to connect</CommonText>
-                        <CommonText>
+                        <CommonText style={{ color: theme.text }}>would like to connect</CommonText>
+                        <CommonText style={{ color: theme.text2 }}>
                             {pairingProposal?.params?.proposer?.metadata.url}
                         </CommonText>
                     </View>
                     <View style={[styles.contentContainer]}>
-                        <CommonText>REQUESTED PERMISSIONS:</CommonText>
+                        <CommonText style={{ color: theme.text, fontWeight: 'bold' }}>REQUESTED PERMISSIONS:</CommonText>
                         {requiredNamespaces?.eip155?.chains?.map(
                             (chain, index) => {
                                 return (
-                                    <CommonText key={chain}>
+                                    <CommonText key={chain} style={{ color: theme.text2 }}>
                                         {chain.toUpperCase()}
                                     </CommonText>
                                 );
@@ -459,7 +969,7 @@ export default function DAppsDetailScreen({navigation, route}) {
                         {requiredNamespaces?.eip155?.methods?.length &&
                             requiredNamespaces?.eip155?.methods?.map(
                                 (method, index) => (
-                                    <CommonText key={method}>
+                                    <CommonText key={method} style={{ color: theme.text2 }}>
                                         {method}
                                     </CommonText>
                                 ),
@@ -467,7 +977,7 @@ export default function DAppsDetailScreen({navigation, route}) {
 
                         {requiredNamespaces?.eip155?.events?.map(
                             (method, index) => (
-                                <CommonText key={method}>{method}</CommonText>
+                                <CommonText key={method} style={{ color: theme.text2 }}>{method}</CommonText>
                             ),
                         )}
                     </View>
@@ -513,17 +1023,18 @@ export default function DAppsDetailScreen({navigation, route}) {
                         style={{
                             fontWeight: 'bold',
                             fontSize: 17,
+                            color: theme.text,
                         }}>
                         {pairingProposal?.params?.proposer?.metadata?.name}
                     </CommonText>
-                    <CommonText>would like to connect</CommonText>
-                    <CommonText>
+                    <CommonText style={{ color: theme.text }}>would like to connect</CommonText>
+                    <CommonText style={{ color: theme.text2 }}>
                         {pairingProposal?.params?.proposer?.metadata.url}
                     </CommonText>
                 </View>
                 <View style={[styles.contentContainer]}>
                     {requestEventData && (
-                        <CommonText>
+                        <CommonText style={{ color: theme.text }}>
                             wants to{' '}
                             {requestEventData?.params?.request?.method ===
                             'personal_sign'
@@ -532,7 +1043,7 @@ export default function DAppsDetailScreen({navigation, route}) {
                         </CommonText>
                     )}
                     {requestEventData && (
-                        <CommonText>
+                        <CommonText style={{ color: theme.text2 }}>
                             {JSON.stringify(
                                 getSignParamsMessage(
                                     requestEventData?.params?.request?.params,
@@ -562,6 +1073,121 @@ export default function DAppsDetailScreen({navigation, route}) {
                     </View>
                 </View>
             </ActionSheet>
+            
+            {/* Smart Contract Call Modal */}
+            <SmartContractCallModal
+                visible={showSmartContractModal}
+                onClose={() => {
+                    setShowSmartContractModal(false);
+                    setSmartContractTransaction(null);
+                }}
+                onApprove={handleSmartContractApprove}
+                onReject={handleSmartContractReject}
+                transactionData={smartContractTransaction}
+                dappInfo={{
+                    name: item.name,
+                    url: item.url,
+                    icon: null
+                }}
+            />
+            
+            {/* Web3 Request Modal */}
+            <Web3RequestModal
+                visible={showWeb3RequestModal}
+                onClose={handleWeb3RequestClose}
+                onApprove={handleWeb3RequestApprove}
+                onReject={handleWeb3RequestReject}
+                requestData={web3RequestData}
+                dappInfo={{
+                    name: item.name,
+                    url: item.url,
+                    icon: null
+                }}
+            />
+            
+            {/* Network Selection Modal */}
+            <ActionSheet
+                ref={null}
+                isModal={Platform.OS === 'android'}
+                useBottomSafeAreaPadding={true}
+                visible={showNetworkModal}
+                onClose={() => setShowNetworkModal(false)}
+                containerStyle={[
+                    styles.networkModalContainer,
+                    { backgroundColor: theme.background }
+                ]}
+            >
+                <SafeAreaView>
+                    <View style={styles.networkModalHeader}>
+                        <CommonText style={[styles.networkModalTitle, { color: theme.text }]}>
+                            Select Network
+                        </CommonText>
+                        <TouchableOpacity
+                            onPress={() => setShowNetworkModal(false)}
+                            style={styles.networkModalCloseButton}
+                        >
+                            <Icon 
+                                type={Icons.MaterialIcons} 
+                                name="close" 
+                                size={24} 
+                                color={theme.text2} 
+                            />
+                        </TouchableOpacity>
+                    </View>
+                    
+                    <View style={styles.networkList}>
+                        {availableNetworks.map((network) => (
+                            <TouchableOpacity
+                                key={network}
+                                style={[
+                                    styles.networkItem,
+                                    { 
+                                        backgroundColor: activeChain === network ? getNetworkColor(network) + '20' : theme.cardBackground,
+                                        borderColor: activeChain === network ? getNetworkColor(network) : theme.border
+                                    }
+                                ]}
+                                onPress={() => handleNetworkSwitch(network)}
+                                activeOpacity={0.7}
+                            >
+                                <View style={styles.networkItemContent}>
+                                    <View style={[
+                                        styles.networkItemIndicator, 
+                                        { backgroundColor: getNetworkColor(network) }
+                                    ]}>
+                                        <View style={[
+                                            styles.networkItemDot, 
+                                            { backgroundColor: getNetworkIndicatorColor(network) }
+                                        ]} />
+                                    </View>
+                                    <View style={styles.networkItemText}>
+                                        <CommonText style={[
+                                            styles.networkItemName, 
+                                            { color: theme.text }
+                                        ]}>
+                                            {getNetworkDisplayName(network)}
+                                        </CommonText>
+                                        <CommonText style={[
+                                            styles.networkItemChain, 
+                                            { color: theme.text2 }
+                                        ]}>
+                                            {network} Network
+                                        </CommonText>
+                                    </View>
+                                    {activeChain === network && (
+                                        <Icon 
+                                            type={Icons.MaterialIcons} 
+                                            name="check" 
+                                            size={20} 
+                                            color={getNetworkColor(network)} 
+                                        />
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </SafeAreaView>
+            </ActionSheet>
+            
         </SafeAreaView>
     );
 }
@@ -589,10 +1215,97 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     rightHeader: {
-        width: 30,
+        width: 100,
         height: '100%',
         alignItems: 'flex-end',
         justifyContent: 'center',
+    },
+    // Network Selection Styles
+    networkButton: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        minWidth: 80,
+    },
+    networkButtonContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    networkIndicator: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 6,
+    },
+    networkButtonText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: '600',
+        marginRight: 2,
+    },
+    // Network Modal Styles
+    networkModalContainer: {
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        maxHeight: '70%',
+    },
+    networkModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.1)',
+    },
+    networkModalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    networkModalCloseButton: {
+        padding: 5,
+    },
+    networkList: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+    },
+    networkItem: {
+        borderRadius: 12,
+        marginVertical: 6,
+        borderWidth: 1,
+        overflow: 'hidden',
+    },
+    networkItemContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+    networkItemIndicator: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    networkItemDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+    },
+    networkItemText: {
+        flex: 1,
+    },
+    networkItemName: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 2,
+    },
+    networkItemChain: {
+        fontSize: 12,
+        opacity: 0.7,
     },
     headerTitle: {
         fontSize: 15,

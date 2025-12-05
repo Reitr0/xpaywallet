@@ -33,6 +33,7 @@ const ReduxStore = configureStore({
     },
     middleware: getDefaultMiddleware({
         serializableCheck: false,
+        immutableCheck: false, // Disable immutable state invariant middleware to fix performance warning
     }),
 });
 export default ReduxStore;

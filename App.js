@@ -11,11 +11,13 @@ import '@modules/i18n/i18n';
 import {SheetProvider} from 'react-native-actions-sheet';
 import CommonLoading from '@components/commons/CommonLoading';
 import CustomisableAlert from 'react-native-customisable-alert';
-import {LogBox} from 'react-native';
+import {LogBox, Linking} from 'react-native';
 import {VCoinPlatform} from '@modules/core/app/VCoinPlatform';
 import {StorageService} from '@modules/core/storage/StorageService';
 import i18n from 'i18next';
 import {ThemeAction} from "@persistence/theme/ThemeAction";
+import {deepLinkHandler} from '@modules/deeplink/DeepLinkHandler';
+import WalletConnectSessionModal from '@components/WalletConnectSessionModal';
 
 LogBox.ignoreAllLogs(true);
 enableScreens();
@@ -27,8 +29,12 @@ export default function App() {
         (async () => {
             //await StorageService.clear();
             VCoinPlatform.init();
+            
+            // Initialize comprehensive deep link handler
+            console.log('🔗 Comprehensive deep link handler initialized');
         })();
     }, []);
+
     const loadLanguage = async () => {
         try {
             const lng = await StorageService.getItem('@lng');
@@ -46,6 +52,7 @@ export default function App() {
                 <ApplicationNavigator />
                 <CommonLoading ref={ref => CommonLoading.setRef(ref)} />
                 <CustomisableAlert />
+                <WalletConnectSessionModal />
             </SheetProvider>
         </Provider>
     );

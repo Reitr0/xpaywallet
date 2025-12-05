@@ -57,17 +57,35 @@ export class SolanaWallet implements Wallet{
 
     async fromPrivateKey(data, privateKey): Promise<Object> {
         try {
+            if (!privateKey || typeof privateKey !== 'string') {
+                Logs.info('SolanaWallet: fromPrivateKey Expected String', `Received: ${typeof privateKey}`);
+                return {
+                    success: false,
+                    data: {
+                        ...data,
+                        error: 'Invalid private key: Expected string'
+                    }
+                };
+            }
+            
             this.keypair = Keypair.fromSecretKey(bs58.decode(privateKey)); // Decode from Base58
             return {
                 success: true,
                 data: {
                     ...data,
                     walletAddress: this.keypair.publicKey.toString(),
+                    privateKey: privateKey
                 },
             };
         } catch (e) {
             Logs.info('SolanaWallet: fromPrivateKey', e);
-            // ... (Error handling)
+            return {
+                success: false,
+                data: {
+                    ...data,
+                    error: e.message
+                }
+            };
         }
     }
 

@@ -97,5 +97,85 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<!-- Wallet Deep Link URL Schemes -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<!-- WalletConnect Schemes -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>WalletConnect</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>wc</string>
+				<string>yo-wallet</string>
+				<string>walletconnect</string>
+			</array>
+		</dict>
+		<!-- MetaMask Schemes -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>MetaMask</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>metamask</string>
+				<string>metamask-wc</string>
+			</array>
+		</dict>
+		<!-- Trust Wallet Schemes -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>TrustWallet</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>trust</string>
+			</array>
+		</dict>
+		<!-- Rainbow Wallet Schemes -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>RainbowWallet</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>rainbow</string>
+			</array>
+		</dict>
+		<!-- Coinbase Wallet Schemes -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>CoinbaseWallet</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>cbwallet</string>
+			</array>
+		</dict>
+		<!-- Phantom Wallet Schemes (Solana) -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>PhantomWallet</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>phantom</string>
+			</array>
+		</dict>
+		<!-- Solflare Wallet Schemes (Solana) -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>SolflareWallet</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>solflare</string>
+			</array>
+		</dict>
+		<!-- Custom App Schemes -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>NewXPay</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>newxpay</string>
+				<string>xpay</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

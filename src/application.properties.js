@@ -111,27 +111,6 @@ export const applicationProperties = {
             logo: 'https://i.ibb.co/7WkxZZ2/Untitled-3.png',
             url: 'https://solxdapp.io/signup',
         },
-        // {
-        //     id: 'uniswap',
-        //     name: 'Uniswap Exchange',
-        //     desc: 'Uniswap is a protocal for automated token exchange',
-        //     logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/7083.png',
-        //     url: 'https://app.uniswap.org/#/swap',
-        // },
-        // {
-        //     id: '1inch.io',
-        //     name: '1inch.io',
-        //     desc: 'Token Swap Aggregator',
-        //     logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/8104.png',
-        //     url: 'https://app.1inch.io/#/1/unified/swap/ETH/DAI',
-        // },
-        // {
-        //     id: 'pancakeswap.finance',
-        //     name: 'Exchange | PancakeSwap',
-        //     desc: 'The most popular AMM on BSC by user count! Earn CAKE through yield farming or win it in the Lottery, then stake it in Syrup Pools to earn more tokens! Initial Farm Offerings (new token launch model pioneered by PancakeSwap), NFTs, and more, on a platform you can trust.',
-        //     logo: 'https://s2.coinmarketcap.com/static/img/coins/64x64/7186.png',
-        //     url: 'https://pancakeswap.finance/swap',
-        // },
     ],
     walletConnect: {
         description: 'VCoinLab Wallet',

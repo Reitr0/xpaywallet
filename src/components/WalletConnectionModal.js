@@ -233,7 +233,7 @@ const WalletConnectionModal = ({ visible, onClose, onWalletConnected, selectedCh
                                 <View style={styles.emptyState}>
                                     <Icon
                                         type={Icons.MaterialIcons}
-                                        name="wallet"
+                                        name="account-balance-wallet"
                                         size={48}
                                         color={theme.subText}
                                     />

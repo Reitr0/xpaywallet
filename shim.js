@@ -24,3 +24,23 @@ if (typeof localStorage !== 'undefined') {
 // If using the crypto shim, uncomment the following line to ensure
 // crypto is loaded first, so it can populate global.crypto
 // require('crypto')
+
+// Suppress responseType warnings
+if (typeof XMLHttpRequest !== 'undefined') {
+    const originalOpen = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+        this._method = method;
+        this._url = url;
+        return originalOpen.apply(this, arguments);
+    };
+    
+    const originalSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
+    XMLHttpRequest.prototype.setRequestHeader = function(name, value) {
+        if (name.toLowerCase() === 'responsetype' && 
+            (value === 'ms-stream' || value === 'moz-chunked-arraybuffer')) {
+            // Suppress warning for unsupported response types
+            return;
+        }
+        return originalSetRequestHeader.apply(this, arguments);
+    };
+}

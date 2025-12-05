@@ -32,7 +32,7 @@ function SplashScreen({navigation}) {
     return (
         <View style={[styles.container, {backgroundColor: '#000000'}]}>
             <CommonImage
-                source={require('@assets/images/loadingscreen.jpg')}
+                source={require('@assets/images/logosplash.png')}
                 style={styles.logo}
             />
         </View>
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     logo: {
-        width: 400,
+        width: 300,
         height: 1200,
     },
 });

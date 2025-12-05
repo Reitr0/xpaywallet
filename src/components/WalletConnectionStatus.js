@@ -77,7 +77,7 @@ const WalletConnectionStatus = ({ onDisconnect, onSwitchWallet }) => {
                 <View style={styles.statusIndicator}>
                     <Icon
                         type={Icons.MaterialIcons}
-                        name="wallet"
+                        name="account-balance-wallet"
                         size={20}
                         color={theme.subText}
                     />

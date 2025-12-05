@@ -42,6 +42,7 @@ import DummySwapScreen from '@screens/swap/DummySwapScreen';
 import wallet from '@screens/test/Wallet';
 import TransactionDetail from '@screens/wallet/TransactionDetail';
 import CardScreen from '@screens/wallet/CardScreen';
+import TestWalletConnectModal from '@components/TestWalletConnectModal';
 
 const Stack = createStackNavigator();
 
@@ -174,6 +175,11 @@ function MainStackNavigator() {
                 component={DAppsHistoryScreen}
             />
             <Stack.Screen name="wallet" component={wallet} />
+            <Stack.Screen 
+                name="TestWalletConnectModal" 
+                component={TestWalletConnectModal}
+                options={{ title: 'Test WalletConnect Modal' }}
+            />
         </Stack.Navigator>
     );
 }

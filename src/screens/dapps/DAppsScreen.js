@@ -121,15 +121,7 @@ export default function DAppsScreen({navigation, route}) {
                         styles.content,
                         {backgroundColor: theme.background},
                     ]}>
-                    {/* Wallet Connection Status */}
-                    <WalletConnectionStatus
-                        onDisconnect={() => {
-                            // Handle disconnect if needed
-                        }}
-                        onSwitchWallet={() => {
-                            // Handle switch wallet if needed
-                        }}
-                    />
+
                     
                     <CommonFlatList
                         data={applicationProperties.dapps}

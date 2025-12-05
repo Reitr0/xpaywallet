@@ -15,6 +15,7 @@ const EnterPinCodeScreen = ({route}) => {
     const dispatch = useDispatch();
     const {t} = useTranslation();
     const {theme} = useSelector(state => state.ThemeReducer);
+    const {appLock} = useSelector(state => state.AppLockReducer);
     const [retryCount, setRetryCount] = useState(0);
     const maxRetries = 3;
     useEffect(() => {
@@ -36,7 +37,7 @@ const EnterPinCodeScreen = ({route}) => {
                 dispatch(ThemeAction.setDefault(JSON.parse(savedTheme)));
             }
         })();
-    }, [dispatch]);
+    }, [dispatch, appLock]);
     useEffect(() => {
         const backAction = () => {
             return true; // Disable back button
