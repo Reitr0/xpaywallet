@@ -7,7 +7,7 @@ import AppLockReducer from '@persistence/applock/AppLockReducer';
 import WalletReducer from '@persistence/wallet/WalletReducer';
 import MarketReducer from '@persistence/market/MarketReducer';
 import WalletConnectReducer from '@persistence/walletconnect/WalletConnectReducer';
-import WalletConnectConnectionReducer from '@persistence/walletconnect/WalletConnectConnectionReducer';
+import { WalletConnectConnectionReducer } from '@persistence/walletconnect/WalletConnectConnectionReducer';
 import FeeReducer from '@persistence/fee/FeeReducer';
 import NotifyReducer from '@persistence/notify/NotifyReducer';
 import PriceAlertReducer from '@persistence/pricealert/PriceAlertReducer';
@@ -33,6 +33,7 @@ const ReduxStore = configureStore({
     },
     middleware: getDefaultMiddleware({
         serializableCheck: false,
+        immutableCheck: false, // Disable immutable state invariant middleware to fix performance warning
     }),
 });
 export default ReduxStore;

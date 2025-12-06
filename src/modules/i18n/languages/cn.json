@@ -273,7 +273,7 @@
     "transaction_detail.item": "交易详情",
     "transaction_detail.network": "网络",
     "transaction_detail.no_data": "无数据",
-    "transaction_detail.view_on_sol": "在 Solscan 上查看",
+    "transaction_detail.view_on_sol": "查看更多详情",
     "transactionStatus.success": "成功",
     "transactionStatus.fail": "失敗",
     "date.today": "今天",

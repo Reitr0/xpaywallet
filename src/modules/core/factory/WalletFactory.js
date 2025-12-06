@@ -283,15 +283,16 @@ export class WalletFactory {
                     let solanaWallet = this.wallets.SOLANA;
                     if (!solanaWallet) {
                         solanaWallet = new SolanaWallet(provider);
-                        const {success, data} =
-                            await solanaWallet.fromPrivateKey(coin);
-                        if (success) {
-                            solanaWallet.setData(data);
-                            this.wallets[coin.chain] = SolanaWallet;
+                        const result = await solanaWallet.fromPrivateKey(coin, coin.privateKey);
+                        if (result && result.success) {
+                            solanaWallet.setData(result.data);
+                            this.wallets[coin.chain] = solanaWallet;
                             all.push({
-                                ...data,
-                                privateKey: data.privateKey,
+                                ...result.data,
+                                privateKey: result.data.privateKey,
                             });
+                        } else {
+                            Logs.info('WalletFactory: fromPrivateKey', 'Failed to create Solana wallet:', result?.data?.error || 'Unknown error');
                         }
                     } else {
                         const baseSolanaWallet = {
@@ -1257,12 +1258,29 @@ export class WalletFactory {
                             }),
                     );
                 } else if (chain === 'TRON') {
-                    config.url = `${configProperties.tron.api}/walletsolidity/getaccount`;
+                    // Validate Tron address format
+                    if (!wallets[i].walletAddress || wallets[i].walletAddress.length < 34) {
+                        console.warn(`Invalid Tron address: ${wallets[i].walletAddress}`);
+                        requests.push(Promise.resolve({
+                            data: { balance: 0 },
+                            chain,
+                            walletAddress: wallets[i].walletAddress,
+                            error: 'Invalid address format'
+                        }));
+                        continue;
+                    }
+                    
+                    config.url = `${configProperties.tron.api}walletsolidity/getaccount`;
                     config.method = 'post';
                     config.data = {
-                        address: wallets[i].walletAddress, // Use base58 address
-                        visible: true, // Keep visible: true for base58 address
+                        address: wallets[i].walletAddress,
+                        visible: true,
                     };
+                    config.headers = {
+                        'TRON-PRO-API-KEY': configProperties.tron.key,
+                        'Content-Type': 'application/json'
+                    };
+                    
                     requests.push(
                         axios(config)
                             .then(response => ({
@@ -1271,15 +1289,15 @@ export class WalletFactory {
                                 walletAddress: wallets[i].walletAddress,
                             }))
                             .catch(err => {
-                                console.error(
-                                    `Error getting Tron balance for ${wallets[i].walletAddress}:`,
-                                    err.message,
+                                console.warn(
+                                    `No balance found for Tron address ${wallets[i].walletAddress}:`,
+                                    err.response?.status === 400 ? 'Address not found or invalid' : err.message
                                 );
                                 return {
                                     data: { balance: 0 },
                                     chain,
                                     walletAddress: wallets[i].walletAddress,
-                                    error: err.message,
+                                    error: err.response?.status === 400 ? 'Address not found' : err.message,
                                 };
                             }),
                     );

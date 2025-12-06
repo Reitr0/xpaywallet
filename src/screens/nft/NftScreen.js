@@ -170,7 +170,10 @@ export default function NftScreen({navigation, route}) {
     async function pair(wcUri) {
         const wcUrl = wcUri.replace('amp;', '');
         setUri(getUri(wcUrl));
-        await onConnect({uri: wcUrl});
+        
+        // Use the deep link handler to properly parse and handle the URI
+        const { deepLinkHandler } = await import('@modules/deeplink/DeepLinkHandler');
+        deepLinkHandler.handleDeepLink(wcUrl);
     }
 
     const onSessionProposal = useCallback(proposal => {
